@@ -32,8 +32,8 @@ For SPLIT tasks, acceptance criteria items prefixed with 🤚 are yours to execu
 - [x] `CatalogApplication.java` with `@SpringBootApplication` and a `main` method
 - [x] `CatalogController.java` with `@RestController`, `@GetMapping("/")` returning `{"service": "catalog", "status": "ok"}`
 - [x] `application.yml` sets `server.port: 8080`
-- [ ] 🤚 Build succeeds: `./mvnw clean package -DskipTests` from `apps/catalog/`
-- [ ] 🤚 Run locally: `./mvnw spring-boot:run` → `curl localhost:8080` returns the expected JSON
+- [x] 🤚 Build succeeds: `./mvnw clean package -DskipTests` from `apps/catalog/`
+- [x] 🤚 Run locally: `./mvnw spring-boot:run` → `curl localhost:8080` returns the expected JSON
 
 **🤚 What to Observe:**
 Watch the Spring Boot startup banner in your terminal. Notice the embedded Tomcat server starting on port 8080. This exact same process will later run inside a Docker container, then inside a Kubernetes Pod — the app itself has zero awareness of Kubernetes. K8s treats it as an ordinary process.
@@ -60,8 +60,8 @@ Watch the Spring Boot startup banner in your terminal. Notice the embedded Tomca
 - [x] `OrdersApplication.java` with `@SpringBootApplication` and a `main` method
 - [x] `OrdersController.java` with `@RestController`, `@GetMapping("/")` returning `{"service": "orders", "status": "ok"}`
 - [x] `application.yml` sets `server.port: 8083`
-- [ ] 🤚 Build succeeds: `./mvnw clean package -DskipTests` from `apps/orders/`
-- [ ] 🤚 Run locally: `./mvnw spring-boot:run` → `curl localhost:8083` returns the expected JSON
+- [x] 🤚 Build succeeds: `./mvnw clean package -DskipTests` from `apps/orders/`
+- [x] 🤚 Run locally: `./mvnw spring-boot:run` → `curl localhost:8083` returns the expected JSON
 
 **🤚 What to Observe:**
 Two completely independent services with no knowledge of each other — yet they will later be wired together purely through Kubernetes constructs (Services, DNS, environment variables). The application code will not change when the wiring is added.
@@ -83,11 +83,11 @@ Two completely independent services with no knowledge of each other — yet they
 **Description:** Create a multi-stage Dockerfile for each app: stage 1 builds the JAR with Maven, stage 2 runs it on `eclipse-temurin:25-jre`. This keeps images small and decouples the build environment from the runtime.
 
 **Acceptance criteria:**
-- [ ] `apps/catalog/Dockerfile` uses multi-stage build (Maven build → JRE runtime)
-- [ ] `apps/orders/Dockerfile` uses multi-stage build
-- [ ] Both use `eclipse-temurin:25-jre` as the runtime base
-- [ ] `EXPOSE` matches the app's port (8080 for catalog, 8083 for orders)
-- [ ] `.dockerignore` in each app directory excludes `target/`, `.idea/`, `.git/`
+- [x] `apps/catalog/Dockerfile` uses multi-stage build (Maven build → JRE runtime)
+- [x] `apps/orders/Dockerfile` uses multi-stage build
+- [x] Both use `eclipse-temurin:25-jre` as the runtime base
+- [x] `EXPOSE` matches the app's port (8080 for catalog, 8083 for orders)
+- [x] `.dockerignore` in each app directory excludes `target/`, `.idea/`, `.git/`
 - [ ] 🤚 Build catalog image: `docker build -t shop/catalog:dev apps/catalog/`
 - [ ] 🤚 Build orders image: `docker build -t shop/orders:dev apps/orders/`
 - [ ] 🤚 Smoke test: `docker run --rm -p 8080:8080 shop/catalog:dev` → `curl localhost:8080` returns expected JSON
