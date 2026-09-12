@@ -7,6 +7,21 @@
 
 ---
 
+## Containers & Images
+
+> 🤚 Fill this in after **Playbook 00** → [00-containerize.md](../playbooks/00-containerize.md)
+
+**Think through:**
+- What is the difference between a container image and a running container?
+- What is the Docker "build context", and why does a multi-stage build not need the host's `target/` directory?
+- What is the difference between `target/` on your host Mac vs `/workspace/target/` inside the builder container?
+- What does an image tag like `shop/catalog:dev` mean, and why should you avoid `:latest` for images used in local Kubernetes clusters?
+- Why can't a local `kind` cluster pull images from your host Docker daemon without `kind load docker-image`?
+
+<!-- Your notes go here -->
+
+---
+
 ## Pods
 
 > 🤚 Fill this in after **Playbook 01** → [01-basics.md](../playbooks/01-basics.md)
