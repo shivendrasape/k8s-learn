@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.cursor/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build outputs
+target/
+**/target/
+build/
+**/build/
+out/
+**/out/
+
+# Log files
+*.log
+
+# Environment & Secrets
+.env
+.env.local
+*.local.yaml
