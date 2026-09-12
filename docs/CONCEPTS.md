@@ -22,6 +22,34 @@
 
 ---
 
+## Cluster Architecture: Control Plane, Nodes, & `kubectl`
+
+> 🤚 Fill this in after **Playbook 00** → [00-containerize.md](../playbooks/00-containerize.md)
+
+**Think through:**
+- What is the difference between the **Control Plane** and a **Worker Node** in a Kubernetes cluster?
+- What are the four core components of the Control Plane (`kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`), and what does each do?
+- How does `kind` simulate an entire Kubernetes node using a single Docker container (`k8s-learn-control-plane`)?
+- What is `containerd`? Is it something you had to install on your Mac, or where does it live?
+- Does the `kind` container run our `shop` images directly? How does container nesting work here?
+- What does `docker exec -it k8s-learn-control-plane crictl images | grep shop` actually do, and why are there two separate image stores on your machine?
+- Is `kubectl` specific to `kind`, or universal? How does `kubectl` know how to talk to your local cluster via `~/.kube/config`?
+- Why did we need `kind/cluster-config.yaml` with `extraPortMappings` to expose port 30080 to our Mac host?
+
+#### Reference: Local (`kind`) vs. Standard Cloud vs. Serverless Cloud
+
+| Aspect | Local (`kind`) | Standard Cloud (GKE / EKS) | Serverless Cloud (GKE Autopilot / AWS Fargate) |
+|---|---|---|---|
+| **Control Plane** | Runs in `k8s-learn-control-plane` Docker container on your Mac. | Managed across redundant VMs by Google/AWS. Invisible and managed for you. | Managed across redundant VMs by Google/AWS. Invisible and managed for you. |
+| **Worker Nodes** | Simulated inside the same Docker container. | Real Linux VMs (Google Compute Engine or AWS EC2). You choose machine types and manage node pools. | **No node management at all.** Google/AWS dynamically spins up compute on-demand for each Pod. |
+| **Container Engine** | `containerd` inside the Docker container. | `containerd` installed natively on the Linux VMs. | `containerd` managed entirely by the cloud provider. |
+| **Pricing Model** | Free (uses your Mac's RAM and CPU). | You pay for the underlying VMs 24/7, whether your pods use all CPU or not. | **Pay-per-Pod:** You only pay for the exact CPU and memory requested by running Pods. |
+| **External Access** | NodePort + `extraPortMappings` to localhost. | Cloud Load Balancers or NodePort on public VM IPs. | Cloud Load Balancer provisioned automatically by K8s Service annotations. |
+
+<!-- Your notes go here -->
+
+---
+
 ## Pods
 
 > 🤚 Fill this in after **Playbook 01** → [01-basics.md](../playbooks/01-basics.md)
@@ -29,6 +57,8 @@
 **Think through:**
 - What is a Pod, and what does it actually contain at runtime?
 - Why does Kubernetes use Pods instead of running containers directly?
+- Why does `curl localhost:8080` fail when Pods are running on a cluster node? What is the difference between a Pod's overlay IP and your Mac's host ports?
+- How does `kubectl port-forward` bridge the gap between your Mac and a Pod?
 - What happens to a Pod when the node it is running on dies?
 - When would you ever put *two* containers in the same Pod?
 
@@ -41,6 +71,8 @@
 > 🤚 Fill this in after **Playbook 01** → [01-basics.md](../playbooks/01-basics.md)
 
 **Think through:**
+- What is the difference between a **Client-Side Dry Run** (`--dry-run=client`) and a **Server-Side Dry Run** (`--dry-run=server`)? What does the API server inject during server-side validation?
+- What is a **Namespace** (like `shop`), and how does it organize workloads in both local clusters and Cloud consoles (GCP/AWS)?
 - What problem does a ReplicaSet solve that a bare Pod cannot?
 - If you delete a Pod that is managed by a Deployment, what happens and why?
 - What is "desired state" vs "actual state"? Why does that distinction matter in operations?
@@ -55,10 +87,15 @@
 > 🤚 Fill this in after **Playbook 02** → [02-networking.md](../playbooks/02-networking.md)
 
 **Think through:**
+- Why is `kubectl port-forward` strictly a temporary developer debugging tunnel, and why can it never be used for production traffic?
 - What problem does a ClusterIP Service solve? Why can you not just use a Pod's IP directly?
 - How does `curl http://catalog:8080` resolve inside the cluster? Who resolves `catalog`?
-- What is the difference between a ClusterIP Service and a NodePort Service?
+- What is the difference between a ClusterIP Service, a NodePort Service, and a Cloud LoadBalancer?
 - What is the relationship between a Service's `selector` field and pod labels?
+
+#### Reference: Reaching Pods (Debugging vs. Production)
+- **`kubectl port-forward` (Developer Tunnel):** Connects a temporary pipe from your laptop to one specific Pod or Deployment through the Kubernetes API server. If you close your terminal or your laptop sleeps, the tunnel dies.
+- **`Kubernetes Service` (Production Routing):** A durable, in-cluster load balancer. It assigns a stable virtual IP (`ClusterIP`) and DNS name. Even if Pods are killed and replaced with new IPs, the Service automatically routes traffic to healthy pods matching its label selector.
 
 <!-- Your notes go here -->
 

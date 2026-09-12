@@ -167,11 +167,11 @@ Watch the multi-stage build layers print in sequence. Stage 1 (Maven) pulls the 
 **Description:** Follow `playbooks/00-containerize.md` to create the `k8s-learn` kind cluster, build both Docker images, and load them into the cluster's container runtime. Agent writes `kind/cluster-config.yaml`; you run everything.
 
 **Acceptance criteria:**
-- [ ] 🤚 `kind create cluster --name k8s-learn --config kind/cluster-config.yaml` succeeds
-- [ ] 🤚 `kubectl cluster-info --context kind-k8s-learn` returns cluster info
-- [ ] 🤚 `kind load docker-image shop/catalog:dev --name k8s-learn` succeeds
-- [ ] 🤚 `kind load docker-image shop/orders:dev --name k8s-learn` succeeds
-- [ ] 🤚 Images visible inside the node: `docker exec -it k8s-learn-control-plane crictl images | grep shop`
+- [x] 🤚 `kind create cluster --name k8s-learn --config kind/cluster-config.yaml` succeeds
+- [x] 🤚 `kubectl cluster-info --context kind-k8s-learn` returns cluster info
+- [x] 🤚 `kind load docker-image shop/catalog:dev --name k8s-learn` succeeds
+- [x] 🤚 `kind load docker-image shop/orders:dev --name k8s-learn` succeeds
+- [x] 🤚 Images visible inside the node: `docker exec -it k8s-learn-control-plane crictl images | grep shop`
 
 **🤚 What to Observe:**
 `kind create cluster` spins up a full Kubernetes control plane inside a Docker container on your machine. Run `docker ps` after — you will see a container named `k8s-learn-control-plane`. That container *is* your cluster.
@@ -192,12 +192,12 @@ When you run `kind load docker-image`, the image is copied from Docker's local s
 **Description:** Agent writes the first Kubernetes manifest — a Deployment for the `catalog` app. You validate it against the cluster.
 
 **Acceptance criteria:**
-- [ ] `k8s/raw/01-catalog-deployment.yaml` defines a `Deployment` named `catalog` in namespace `shop`
-- [ ] `replicas: 2`
-- [ ] Container image `shop/catalog:dev` with `imagePullPolicy: Never`
-- [ ] Container port 8080
-- [ ] Labels `app: catalog` on both the Deployment and the pod template
-- [ ] Resource requests/limits set (128Mi/256Mi memory, 250m/500m CPU)
+- [x] `k8s/raw/01-catalog-deployment.yaml` defines a `Deployment` named `catalog` in namespace `shop`
+- [x] `replicas: 2`
+- [x] Container image `shop/catalog:dev` with `imagePullPolicy: Never`
+- [x] Container port 8080
+- [x] Labels `app: catalog` on both the Deployment and the pod template
+- [x] Resource requests/limits set (128Mi/256Mi memory, 250m/500m CPU)
 - [ ] 🤚 Client-side validation: `kubectl apply --dry-run=client -f k8s/raw/01-catalog-deployment.yaml`
 - [ ] 🤚 Server-side validation: `kubectl apply --dry-run=server -f k8s/raw/01-catalog-deployment.yaml -n shop`
 

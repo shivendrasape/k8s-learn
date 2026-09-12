@@ -73,7 +73,7 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 
 ### Phase 2: Local Cluster — Core Compute & Networking (Playbooks 00-02)
 
-- [ ] Task 5: Execute Playbook 00 — create `kind` cluster, build and load images
+- [x] Task 5: Execute Playbook 00 — create `kind` cluster, build and load images
 - [ ] Task 6: Create `k8s/raw/01-catalog-deployment.yaml`
 - [ ] Task 7: Execute Playbook 01 — deploy catalog, prove self-healing
 - [ ] Task 8: Write and execute Playbook 02 — Services (ClusterIP, NodePort)
