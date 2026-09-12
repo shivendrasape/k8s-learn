@@ -76,35 +76,62 @@ docker images | grep shop
 
 ### 3. Smoke Test Containers Locally
 
-Before loading images into Kubernetes, verify that the containers start and respond to HTTP traffic:
+Before loading images into Kubernetes, verify that the containers start and respond to HTTP traffic. You can run them in the foreground (blocking) or non-interactively in the background (detached).
+
+#### Option A: Foreground Mode (Blocking)
+Useful for quick testing where you want to watch the Spring Boot startup logs directly in the terminal:
 
 ```bash
-# Test catalog on port 8080
 docker run --rm -p 8080:8080 shop/catalog:dev
 ```
-In another terminal tab:
+*(Press `Ctrl+C` to stop)*
+
+---
+
+#### Option B: Non-Interactive / Detached Mode with Custom Name (`-d` and `--name`)
+When you want to free up your terminal and avoid keeping multiple tabs open, run the container in **detached mode** (`-d`) and give it a **memorable name** (`--name`):
+
+```bash
+# Run catalog in background named "catalog-app"
+docker run -d --rm --name catalog-app -p 8080:8080 shop/catalog:dev
+
+# Run orders in background named "orders-app"
+docker run -d --rm --name orders-app -p 8083:8083 shop/orders:dev
+```
+
+#### Test with `curl`:
 ```bash
 curl http://localhost:8080/
 # Expected: {"service":"catalog","status":"ok"}
-```
-*(Press Ctrl+C to stop the container)*
 
-```bash
-# Test orders on port 8083
-docker run --rm -p 8083:8083 shop/orders:dev
-```
-In another terminal tab:
-```bash
 curl http://localhost:8083/
 # Expected: {"service":"orders","status":"ok"}
 ```
-*(Press Ctrl+C to stop the container)*
+
+#### Managing Detached Containers:
+```bash
+# 1. View running containers
+docker ps
+
+# 2. Stream logs from a named container (follow mode)
+docker logs -f catalog-app
+
+# 3. Stop containers (they are automatically removed due to --rm)
+docker stop catalog-app
+docker stop orders-app
+```
+
+---
 
 #### Command Breakdown:
-- `docker run`: Creates and starts a container process from an image.
-- `--rm`: Automatically removes the container and its file system when it stops. Prevents stopped container clutter on your machine.
-- `-p 8080:8080` (or `-p 8083:8083`): Port publishing flag (`-p <host_port>:<container_port>`). Forwards incoming traffic from your Mac's localhost port to the container's internal listening port.
-- `shop/catalog:dev`: The image to run.
+| Flag / Argument | Purpose |
+|---|---|
+| `docker run` | Creates and starts a new container instance from an image. |
+| `-d` / `--detach` | **Non-interactive / background mode.** Runs container in background and prints container ID. Leaves terminal free. |
+| `--name <name>` | **Assigns a custom name** (e.g., `catalog-app`). Without this, Docker generates a random name like `peaceful_curie`. Named containers are much easier to reference in `docker logs` and `docker stop`. |
+| `--rm` | **Auto-cleanup.** Automatically deletes the container and its writable layer upon termination, preventing stopped container clutter. |
+| `-p <host>:<container>` | **Port forwarding.** E.g., `-p 8080:8080` maps host `localhost:8080` to container port `8080`. |
+| `shop/catalog:dev` | The container image repository and tag to execute. |
 
 ---
 

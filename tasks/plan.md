@@ -58,18 +58,18 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 
 ### Phase 1: Foundation (Apps & Documentation)
 
-- [ ] Task 1: Scaffold `apps/catalog` Spring Boot application
-- [ ] Task 2: Scaffold `apps/orders` Spring Boot application
-- [ ] Task 3: Write Dockerfiles for both applications
-- [ ] Task 4a: Create root `README.md`
-- [ ] Task 4b: Create `docs/CONCEPTS.md` learning glossary
+- [x] Task 1: Scaffold `apps/catalog` Spring Boot application
+- [x] Task 2: Scaffold `apps/orders` Spring Boot application
+- [x] Task 3: Write Dockerfiles for both applications
+- [x] Task 4a: Create root `README.md`
+- [x] Task 4b: Create `docs/CONCEPTS.md` learning glossary
 
 ### Checkpoint: After Tasks 1-4
 
-- [ ] `./mvnw clean package -DskipTests` succeeds in both app directories
-- [ ] `docker build` succeeds for both images
-- [ ] README and CONCEPTS files exist and are internally consistent with the spec
-- [ ] Review with human before Playbook execution
+- [x] `./mvnw clean package -DskipTests` succeeds in both app directories
+- [x] `docker build` succeeds for both images
+- [x] README and CONCEPTS files exist and are internally consistent with the spec
+- [x] Review with human before Playbook execution
 
 ### Phase 2: Local Cluster — Core Compute & Networking (Playbooks 00-02)
 
@@ -80,10 +80,11 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 
 ### Checkpoint: After Tasks 5-8
 
-- [ ] `catalog` is running as a Deployment behind a ClusterIP Service on `kind`
+- [ ] `catalog` running as a Deployment with 2 replicas behind a ClusterIP Service on `kind`
 - [ ] Self-healing proven (pod deletion → automatic recreation)
-- [ ] `curl` to the catalog service returns the expected JSON payload
-- [ ] Review with human before state and configuration
+- [ ] Internal and external `curl` to catalog succeeds
+- [ ] `docs/CONCEPTS.md` Pods, ReplicaSets & Deployments, Services & DNS sections filled
+- [ ] Review with human before state and configuration work
 
 ### Phase 3: Local Cluster — State, Config, Communication, Operations (Playbooks 03-06)
 
@@ -98,8 +99,9 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 - [ ] Config and secrets are injected, not baked into images
 - [ ] `orders` queries `catalog` via `http://catalog:8080`
 - [ ] Zero-downtime rolling update performed and verified
-- [ ] Probes are configured; readiness failure forced and observed
-- [ ] Job successfully ran a DB seed/schema task
+- [ ] Probes configured; readiness failure forced and observed
+- [ ] Job successfully seeded the database
+- [ ] `docs/CONCEPTS.md` Playbooks 03–06 sections filled
 - [ ] Review with human before GKE transition
 
 ### Phase 4: Cloud Transition — Kustomize & GKE Autopilot (Playbook 07)
@@ -111,10 +113,11 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 
 ### Checkpoint: Complete
 
-- [ ] All spec success criteria met (lines 101-109 of `SPEC-kubernetes-learning.md`)
-- [ ] `k8s/raw/` still intact alongside `k8s/base/` and `k8s/overlays/`
+- [ ] All spec success criteria met (see `docs/SPEC-kubernetes-learning.md` Success Criteria)
+- [ ] `k8s/raw/` intact alongside `k8s/base/` and `k8s/overlays/`
 - [ ] Full system running on GKE Autopilot via Kustomize overlays
-- [ ] `docs/CONCEPTS.md` reflects all concepts learned across Playbooks 00-07
+- [ ] `docs/CONCEPTS.md` fully populated across all playbooks, including the capstone comparison
+- [ ] `README.md` reflects the final project state
 - [ ] Review with human
 
 ## Parallelization Opportunities

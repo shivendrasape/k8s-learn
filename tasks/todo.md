@@ -88,9 +88,9 @@ Two completely independent services with no knowledge of each other — yet they
 - [x] Both use `eclipse-temurin:25-jre` as the runtime base
 - [x] `EXPOSE` matches the app's port (8080 for catalog, 8083 for orders)
 - [x] `.dockerignore` in each app directory excludes `target/`, `.idea/`, `.git/`
-- [ ] 🤚 Build catalog image: `docker build -t shop/catalog:dev apps/catalog/`
-- [ ] 🤚 Build orders image: `docker build -t shop/orders:dev apps/orders/`
-- [ ] 🤚 Smoke test: `docker run --rm -p 8080:8080 shop/catalog:dev` → `curl localhost:8080` returns expected JSON
+- [x] 🤚 Build catalog image: `docker build -t shop/catalog:dev apps/catalog/`
+- [x] 🤚 Build orders image: `docker build -t shop/orders:dev apps/orders/`
+- [x] 🤚 Smoke test: `docker run --rm -p 8080:8080 shop/catalog:dev` → `curl localhost:8080` returns expected JSON
 
 **🤚 What to Observe:**
 Watch the multi-stage build layers print in sequence. Stage 1 (Maven) pulls the internet; Stage 2 (JRE) is tiny. After the build, run `docker images | grep shop` — note the image size. The multi-stage approach keeps the runtime image lean by excluding the Maven toolchain. You will need `imagePullPolicy: Never` in Kubernetes because these images are local-only and have never been pushed to a registry.
@@ -110,13 +110,13 @@ Watch the multi-stage build layers print in sequence. Stage 1 (Maven) pulls the 
 **Description:** Write the project-level README that orients a new reader. Explains what this project is, learning philosophy, quick start commands, manual steps reference, and links to the playbooks in order.
 
 **Acceptance criteria:**
-- [ ] `README.md` at repo root with sections: What This Is, Learning Philosophy, Prerequisites, Quick Start, Playbook Index, Manual Steps at a Glance, What You Will Be Able to Explain, Project Structure
-- [ ] Prerequisites section matches the spec (Docker, kind, kubectl, Java 25, Maven, gcloud)
-- [ ] Playbook index lists all 8 playbooks (00-07) with the commands the user will run
-- [ ] Quick Start includes the verbatim `kind create cluster`, `docker build`, `kind load`, `kubectl apply` commands
+- [x] `README.md` at repo root with sections: What This Is, Learning Philosophy, Prerequisites, Quick Start, Playbook Index, Manual Steps at a Glance, What You Will Be Able to Explain, Project Structure
+- [x] Prerequisites section matches the spec (Docker, kind, kubectl, Java 25, Maven, gcloud)
+- [x] Playbook index lists all 8 playbooks (00-07) with the commands the user will run
+- [x] Quick Start includes the verbatim `kind create cluster`, `docker build`, `kind load`, `kubectl apply` commands
 
 **Verification:**
-- [ ] Links are valid; no broken references
+- [x] Links are valid; no broken references
 
 **Dependencies:** None (parallel with Tasks 1-3)
 
@@ -132,13 +132,13 @@ Watch the multi-stage build layers print in sequence. Stage 1 (Maven) pulls the 
 **Description:** Create the living document where K8s concepts are recorded as they are learned. Pre-seeded with guiding prompts per concept to scaffold thinking — the learner fills in answers in their own words after each playbook.
 
 **Acceptance criteria:**
-- [ ] `docs/CONCEPTS.md` with sections matching every concept in Playbooks 01–07
-- [ ] Each section has 3–5 guiding prompts (questions, not answers)
-- [ ] Each section has a `<!-- Your notes go here -->` placeholder
-- [ ] Final section is a capstone Deployment vs. StatefulSet comparison table
+- [x] `docs/CONCEPTS.md` with sections matching every concept in Playbooks 01–07
+- [x] Each section has 3–5 guiding prompts (questions, not answers)
+- [x] Each section has a `<!-- Your notes go here -->` placeholder
+- [x] Final section is a capstone Deployment vs. StatefulSet comparison table
 
 **Verification:**
-- [ ] File renders correctly in markdown; links to playbooks are valid
+- [x] File renders correctly in markdown; links to playbooks are valid
 
 **Dependencies:** None (parallel with Tasks 1-3)
 
@@ -151,10 +151,10 @@ Watch the multi-stage build layers print in sequence. Stage 1 (Maven) pulls the 
 
 ## Checkpoint: After Tasks 1-4
 
-- [ ] 🤚 `./mvnw clean package -DskipTests` succeeds in both `apps/catalog/` and `apps/orders/`
-- [ ] 🤚 `docker build` succeeds for both `shop/catalog:dev` and `shop/orders:dev`
-- [ ] `README.md`, `docs/CONCEPTS.md`, and `docs/DESIGN.md` exist and are consistent
-- [ ] Human review before any cluster work begins
+- [x] 🤚 `./mvnw clean package -DskipTests` succeeds in both `apps/catalog/` and `apps/orders/`
+- [x] 🤚 `docker build` succeeds for both `shop/catalog:dev` and `shop/orders:dev`
+- [x] `README.md`, `docs/CONCEPTS.md`, and `docs/DESIGN.md` exist and are consistent
+- [x] Human review before any cluster work begins
 
 ---
 
@@ -263,7 +263,7 @@ When you `curl http://catalog:8080` from inside the cluster, Kubernetes DNS (kub
 
 ---
 
-## Checkpoint: After Tasks 5–8
+## Checkpoint: After Tasks 5-8
 
 - [ ] 🤚 `catalog` running as a Deployment with 2 replicas behind a ClusterIP Service on `kind`
 - [ ] 🤚 Self-healing proven (pod deletion → automatic recreation)
@@ -408,7 +408,7 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 
 ---
 
-## Checkpoint: After Tasks 9–12
+## Checkpoint: After Tasks 9-12
 
 - [ ] 🤚 Postgres data survives pod deletion
 - [ ] 🤚 Config and secrets are injected, not baked into images
