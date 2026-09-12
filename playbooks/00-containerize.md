@@ -137,75 +137,35 @@ docker stop orders-app
 
 ### 4. Create the `kind` Cluster
 
-#### Understanding the Architecture: Control Plane, Nodes, & `kind`
+#### Understanding the kind Architecture
 
-Before running the command, let's understand what is actually being created:
+Before running the command, it is important to understand what `kind` is doing behind the scenes.
 
 ```mermaid
 graph TB
     subgraph Host["Your Host Machine (macOS)"]
         KUBECTL["kubectl (Standard K8s CLI)"]
         BROWSER["Browser / curl (localhost:30080)"]
-        KUBECONFIG["~/.kube/config (context: kind-k8s-learn)"]
-        KUBECTL -.->|"Reads credentials & API endpoint"| KUBECONFIG
     end
 
-    subgraph DockerEngine["Docker Engine (Host VM)"]
-        subgraph KindNode["Docker Container: k8s-learn-control-plane (K8s Node)"]
-            APISERVER["kube-apiserver (:6443)"]
-            ETCD["etcd (State Database)"]
-            SCHEDULER["kube-scheduler"]
-            CONTROLLER["kube-controller-manager"]
-            KUBELET["kubelet (Node Agent)"]
-            CONTAINERD["containerd (K8s Container Runtime)"]
-            KUBEPROXY["kube-proxy (Networking & NodePort 30080)"]
+    subgraph KindNode["Docker Container: k8s-learn-control-plane (K8s Node)"]
+        APISERVER["kube-apiserver (:6443)"]
+        KUBELET["kubelet (Node Agent)"]
+        CONTAINERD["containerd (K8s Container Runtime)"]
+        KUBEPROXY["kube-proxy (:30080)"]
 
-            APISERVER --> ETCD
-            APISERVER --> SCHEDULER
-            APISERVER --> CONTROLLER
-            APISERVER <--> KUBELET
-            KUBELET <--> CONTAINERD
-            CONTAINERD --> PODS["Running Pods (catalog, orders, etc.)"]
-        end
+        APISERVER <--> KUBELET
+        KUBELET <--> CONTAINERD
+        CONTAINERD --> PODS["Running Pods"]
     end
 
-    KUBECTL ==>|"HTTPS REST API (port forwarded by Docker)"| APISERVER
-    BROWSER ==>|"extraPortMappings: hostPort 30080 -> containerPort 30080"| KUBEPROXY
+    KUBECTL ==>|"HTTPS API"| APISERVER
+    BROWSER ==>|"Host Port Mapping"| KUBEPROXY
 ```
 
-#### Key Questions Answered:
-
-##### 1. What is a Node and what is the Control Plane?
-- In Kubernetes, a **Node** is a compute machine (physical server or virtual machine).
-- A cluster has two primary roles:
-  - **Control Plane ("The Brain"):** Manages the cluster. It contains:
-    - `kube-apiserver`: The central REST API gateway. All commands go here.
-    - `etcd`: The distributed database storing the desired and actual state of the cluster.
-    - `kube-scheduler`: Assigns newly created Pods to available nodes.
-    - `kube-controller-manager`: Runs background loops to maintain desired state (e.g., if a pod crashes, it restarts it).
-  - **Worker Nodes ("The Muscle"):** Run your actual application containers via `kubelet` and a container runtime (`containerd`).
-- **In `kind` (Kubernetes IN Docker):**
-  Instead of provisioning expensive VMs, `kind` launches a **Docker container** named `k8s-learn-control-plane`. Inside this single container, `kind` runs both the Control Plane services and the Worker components (kubelet + containerd). To Kubernetes, this container looks and acts identically to a bare-metal Linux server!
-
-##### 2. Is `kubectl` specific to `kind` or is it a Kubernetes command?
-- **`kubectl` is the universal, standard Kubernetes CLI.** It is **NOT** specific to `kind`. You will use the exact same `kubectl` command whether managing this local cluster, an enterprise on-premise cluster, or Google Kubernetes Engine (GKE) in Phase 4.
-- **How does `kubectl` know how to talk to `kind`?**
-  When `kind create cluster` runs, it automatically generates credentials and cluster connection details in your local `~/.kube/config` file, setting up a **context** named `kind-k8s-learn`.
-  When you execute `kubectl cluster-info`, `kubectl`:
-  1. Reads `~/.kube/config` to find the API server URL (e.g. `https://127.0.0.1:<random-port>`) and authentication certificates.
-  2. Sends an authenticated HTTPS request directly to the `kube-apiserver` running inside the `k8s-learn-control-plane` container.
-
-##### 3. Why do we need `kind/cluster-config.yaml` and `extraPortMappings`?
-- On macOS, Docker runs inside a lightweight virtual machine.
-- In Playbook 02, we will create a Kubernetes `NodePort` Service on port `30080` to access the `catalog` app from outside the cluster.
-- In a native Linux environment, `localhost:30080` would automatically connect to the node. But on macOS, port `30080` is trapped inside the Docker container (`k8s-learn-control-plane`).
-- `kind/cluster-config.yaml` uses `extraPortMappings`:
-  ```yaml
-  extraPortMappings:
-  - containerPort: 30080
-    hostPort: 30080
-  ```
-  This tells Docker to forward port `30080` from your Mac host directly into port `30080` of the `k8s-learn-control-plane` container. Without this config, `curl localhost:30080` in Playbook 02 would fail with `Connection refused`.
+- **What is a Node?** A compute machine. `kind` (Kubernetes IN Docker) simulates a full Kubernetes Node by running it entirely inside a single Docker container named `k8s-learn-control-plane`.
+- **`kubectl` is universal.** It is the standard K8s CLI, not specific to `kind`. When you create the cluster, `kind` configures `~/.kube/config` so `kubectl` knows how to talk to the `kube-apiserver` running inside the Docker container.
+- **Port Mapping.** The `kind/cluster-config.yaml` file tells Docker to forward port `30080` from your Mac into the Node container. Without this, local testing in Playbook 02 would fail.
 
 ```bash
 # Create a cluster named k8s-learn using our config (maps NodePort 30080 to localhost:30080)
@@ -219,35 +179,26 @@ kubectl cluster-info --context kind-k8s-learn
 
 ### 5. Load Images into `kind`
 
-#### The "Two Image Stores" Problem & containerd
+#### The Image Store Boundary
 
-##### What is `containerd`? Is it a prerequisite?
-- **NO, you do NOT need to install `containerd` on your Mac.** It comes pre-installed inside the `kind` node container.
-- **What is it?** `containerd` is an open-source, lightweight container runtime engine originally created by Docker and donated to the CNCF (Cloud Native Computing Foundation). While Docker is a complete platform with a CLI, build system, and desktop UI, `containerd` is the stripped-down engine that actually creates, starts, and stops container processes. In modern Kubernetes (v1.24+), Kubernetes speaks directly to `containerd` via the **CRI** (Container Runtime Interface).
+Kubernetes uses `containerd` as its internal container runtime to start and stop processes. In `kind`, `containerd` runs entirely isolated inside the `k8s-learn-control-plane` container. 
 
-##### Does the `kind` container run our `shop` images?
-- **YES! This is "containers inside a container."**
-  - **Outer Container:** Docker on your Mac runs `k8s-learn-control-plane` (simulating the Linux machine/Node).
-  - **Inner Containers:** Inside `k8s-learn-control-plane`, `containerd` runs the containers for `shop/catalog` and `shop/orders` (which Kubernetes wraps inside Pods).
+This creates a boundary between your Mac's Docker daemon and the Kubernetes Node's runtime:
 
 ```mermaid
 graph LR
-    subgraph HostMac["Host Machine (macOS)"]
-        DockerCLI["docker build"]
-        DockerDaemon[("Store 1: Docker Daemon Image Cache<br/>(View with: docker images)")]
-        DockerCLI -->|"Builds & saves"| DockerDaemon
+    subgraph Host["Host Machine"]
+        DockerCache[("Docker Cache<br/>(docker images)")]
     end
 
-    DockerDaemon ==>|"kind load docker-image<br/>(Copies image into node)"| ContainerdCache
-
-    subgraph KindContainer["Docker Container: k8s-learn-control-plane (K8s Node)"]
-        ContainerdCache[("Store 2: containerd Image Cache<br/>(View with: crictl images)")]
-        Kubelet["kubelet"] -->|"Instructs"| ContainerdCache
-        ContainerdCache -->|"Runs as inner container"| Pods["Catalog & Orders Pods"]
+    subgraph Node["k8s-learn-control-plane Node"]
+        ContainerdCache[("containerd Cache<br/>(crictl images)")]
     end
+
+    DockerCache ==>|"kind load docker-image"| ContainerdCache
 ```
 
-Because our images are local-only (`shop/*:dev`) and not published to Docker Hub or any remote registry, `kind`'s container runtime (`containerd`) cannot pull them from the internet. We must explicitly copy them from Host Docker into Node `containerd`:
+Because your custom images (`shop/*:dev`) are built locally and not pushed to a public registry like Docker Hub, the cluster cannot download them. You must explicitly push them across the boundary into the Node's internal cache:
 
 ```bash
 kind load docker-image shop/catalog:dev --name k8s-learn
