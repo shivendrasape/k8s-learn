@@ -74,21 +74,21 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 ### Phase 2: Local Cluster — Core Compute & Networking (Playbooks 00-02)
 
 - [x] Task 5: Execute Playbook 00 — create `kind` cluster, build and load images
-- [ ] Task 6: Create `k8s/raw/01-catalog-deployment.yaml`
-- [ ] Task 7: Execute Playbook 01 — deploy catalog, prove self-healing
-- [ ] Task 8: Write and execute Playbook 02 — Services (ClusterIP, NodePort)
+- [x] Task 6: Create `k8s/raw/01-catalog-deployment.yaml`
+- [x] Task 7: Execute Playbook 01 — deploy catalog, prove self-healing
+- [x] Task 8: Write and execute Playbook 02 — Services (ClusterIP, NodePort)
 
 ### Checkpoint: After Tasks 5-8
 
-- [ ] `catalog` running as a Deployment with 2 replicas behind a ClusterIP Service on `kind`
-- [ ] Self-healing proven (pod deletion → automatic recreation)
-- [ ] Internal and external `curl` to catalog succeeds
-- [ ] `docs/CONCEPTS.md` Pods, ReplicaSets & Deployments, Services & DNS sections filled
-- [ ] Review with human before state and configuration work
+- [x] `catalog` running as a Deployment with 2 replicas behind a ClusterIP Service on `kind`
+- [x] Self-healing proven (pod deletion → automatic recreation)
+- [x] Internal and external `curl` to catalog succeeds
+- [x] `docs/CONCEPTS.md` Pods, ReplicaSets & Deployments, Services & DNS sections filled
+- [x] Review with human before state and configuration work
 
 ### Phase 3: Local Cluster — State, Config, Communication, Operations (Playbooks 03-06)
 
-- [ ] Task 9: Write and execute Playbook 03 — postgres StatefulSet, PV/PVC
+- [x] Task 9: Write and execute Playbook 03 — postgres StatefulSet, PV/PVC
 - [ ] Task 10: Write and execute Playbook 04 — ConfigMaps, Secrets, wire catalog → postgres
 - [ ] Task 11: Write and execute Playbook 05 — deploy orders, internal DNS communication
 - [ ] Task 12: Write and execute Playbook 06 — Probes, Jobs, Rolling Updates

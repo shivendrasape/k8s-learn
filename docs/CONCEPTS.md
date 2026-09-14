@@ -112,6 +112,16 @@
 - What is the relationship between a PersistentVolumeClaim, a PersistentVolume, and a StorageClass?
 - When would you use a StatefulSet for a workload that is *not* a database?
 
+#### Reference: The Three Pillars of Stateful Workloads
+
+| Mechanism | Component | Purpose |
+|---|---|---|
+| **Identity** | Headless Service (`clusterIP: None`) | Provides deterministic DNS records (`<pod>.<service>.<ns>.svc.cluster.local`) bypassing virtual proxy IPs. |
+| **Storage** | `volumeClaimTemplates` + StorageClass | Dynamically provisions independent PVs per replica that persist beyond pod termination. |
+| **Ordering** | StatefulSet Controller | Guarantees ordered startup (`0, 1, 2...`) and ordered termination (`...2, 1, 0`) to prevent split-brain states. |
+
+> **Critical Safety Rule:** Deleting a StatefulSet will terminate its Pods, but will **never delete its PVCs**. Persistent Volume Claims must be deleted explicitly to avoid accidental data loss.
+
 <!-- Your notes go here -->
 
 ---

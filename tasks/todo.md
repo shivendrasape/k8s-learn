@@ -198,8 +198,8 @@ When you run `kind load docker-image`, the image is copied from Docker's local s
 - [x] Container port 8080
 - [x] Labels `app: catalog` on both the Deployment and the pod template
 - [x] Resource requests/limits set (128Mi/256Mi memory, 250m/500m CPU)
-- [ ] 🤚 Client-side validation: `kubectl apply --dry-run=client -f k8s/raw/01-catalog-deployment.yaml`
-- [ ] 🤚 Server-side validation: `kubectl apply --dry-run=server -f k8s/raw/01-catalog-deployment.yaml -n shop`
+- [x] 🤚 Client-side validation: `kubectl apply --dry-run=client -f k8s/raw/01-catalog-deployment.yaml`
+- [x] 🤚 Server-side validation: `kubectl apply --dry-run=server -f k8s/raw/01-catalog-deployment.yaml -n shop`
 
 **🤚 What to Observe:**
 The server-side dry-run response includes a `metadata.resourceVersion` field and fully populated defaults (e.g., `terminationGracePeriodSeconds`, `dnsPolicy`). These are injected by Kubernetes admission controllers and default values — they are not in your YAML. This is the full object as Kubernetes sees it, not just what you wrote.
@@ -218,10 +218,10 @@ The server-side dry-run response includes a `metadata.resourceVersion` field and
 **Description:** Follow `playbooks/01-basics.md` to deploy the catalog Deployment and prove Kubernetes self-healing. You run all commands and fill in CONCEPTS.md afterward.
 
 **Acceptance criteria:**
-- [ ] 🤚 `kubectl apply -f k8s/raw/01-catalog-deployment.yaml -n shop` succeeds
-- [ ] 🤚 `kubectl get pods -n shop -l app=catalog` shows 2/2 Ready
-- [ ] 🤚 Delete one pod: `kubectl delete pod <name> -n shop` → a replacement pod appears automatically
-- [ ] 🤚 Fill in Pods and ReplicaSets & Deployments sections in `docs/CONCEPTS.md`
+- [x] 🤚 `kubectl apply -f k8s/raw/01-catalog-deployment.yaml -n shop` succeeds
+- [x] 🤚 `kubectl get pods -n shop -l app=catalog` shows 2/2 Ready
+- [x] 🤚 Delete one pod: `kubectl delete pod <name> -n shop` → a replacement pod appears automatically
+- [x] 🤚 Fill in Pods and ReplicaSets & Deployments sections in `docs/CONCEPTS.md`
 
 **🤚 What to Observe:**
 Watch the `-w` output after `kubectl apply`. Pods move through `Pending` → `ContainerCreating` → `Running`. After you delete a pod, watch how the ReplicaSet detects the mismatch (desired=2, actual=1) and immediately schedules a new pod — without any instruction from you. This is the declarative control loop: you declared intent, Kubernetes continuously enforces it.
@@ -240,13 +240,13 @@ Watch the `-w` output after `kubectl apply`. Pods move through `Pending` → `Co
 **Description:** Agent authors `playbooks/02-networking.md` and the Service manifests. You apply them and verify traffic routing — both internal (from inside the cluster) and external (from your host machine).
 
 **Acceptance criteria:**
-- [ ] `playbooks/02-networking.md` follows established playbook format (Architect's Concept, Implementation Steps, Execution, Verify & Prove with What to Observe, Teardown, After This Playbook)
-- [ ] `k8s/raw/02-catalog-service.yaml` — ClusterIP Service named `catalog` on port 8080
-- [ ] `k8s/raw/02-catalog-nodeport.yaml` — NodePort Service (nodePort: 30080)
-- [ ] 🤚 `kubectl apply -f k8s/raw/02-catalog-service.yaml -n shop` succeeds
-- [ ] 🤚 Internal: `kubectl exec -it <any-pod> -n shop -- curl http://catalog:8080` returns catalog JSON
-- [ ] 🤚 External: `curl localhost:30080` returns catalog JSON (requires kind `extraPortMappings`)
-- [ ] 🤚 Fill in Services & DNS section in `docs/CONCEPTS.md`
+- [x] `playbooks/02-networking.md` follows established playbook format (Architect's Concept, Implementation Steps, Execution, Verify & Prove with What to Observe, Teardown, After This Playbook)
+- [x] `k8s/raw/02-catalog-service.yaml` — ClusterIP Service named `catalog` on port 8080
+- [x] `k8s/raw/02-catalog-nodeport.yaml` — NodePort Service (nodePort: 30080)
+- [x] 🤚 `kubectl apply -f k8s/raw/02-catalog-service.yaml -n shop` succeeds
+- [x] 🤚 Internal: `kubectl exec -it <any-pod> -n shop -- curl http://catalog:8080` returns catalog JSON
+- [x] 🤚 External: `curl localhost:30080` returns catalog JSON (requires kind `extraPortMappings`)
+- [x] 🤚 Fill in Services & DNS section in `docs/CONCEPTS.md`
 
 **🤚 What to Observe:**
 When you `curl http://catalog:8080` from inside the cluster, Kubernetes DNS (kube-dns) resolved the name `catalog` to the Service's ClusterIP — a stable virtual IP that does not change even when pods restart. The Service then load-balances your request across the 2 catalog pods. This is why you use service names, not pod IPs.
@@ -265,11 +265,11 @@ When you `curl http://catalog:8080` from inside the cluster, Kubernetes DNS (kub
 
 ## Checkpoint: After Tasks 5-8
 
-- [ ] 🤚 `catalog` running as a Deployment with 2 replicas behind a ClusterIP Service on `kind`
-- [ ] 🤚 Self-healing proven (pod deletion → automatic recreation)
-- [ ] 🤚 Internal and external `curl` to catalog succeeds
-- [ ] `docs/CONCEPTS.md` Pods, ReplicaSets & Deployments, Services & DNS sections filled
-- [ ] Human review before state and configuration work
+- [x] 🤚 `catalog` running as a Deployment with 2 replicas behind a ClusterIP Service on `kind`
+- [x] 🤚 Self-healing proven (pod deletion → automatic recreation)
+- [x] 🤚 Internal and external `curl` to catalog succeeds
+- [x] `docs/CONCEPTS.md` Pods, ReplicaSets & Deployments, Services & DNS sections filled
+- [x] Human review before state and configuration work
 
 ---
 
@@ -282,14 +282,14 @@ When you `curl http://catalog:8080` from inside the cluster, Kubernetes DNS (kub
 **Description:** Agent authors `playbooks/03-state.md` and the StatefulSet manifests. You apply them and prove data persistence by surviving a pod deletion.
 
 **Acceptance criteria:**
-- [ ] `playbooks/03-state.md` follows established format
-- [ ] `k8s/raw/03-postgres-statefulset.yaml` — StatefulSet named `postgres`, 1 replica, `postgres:16-alpine`, `volumeClaimTemplates` requesting 1Gi
-- [ ] `k8s/raw/03-postgres-service.yaml` — headless Service for the StatefulSet
-- [ ] 🤚 `kubectl apply -f` both manifests in the `shop` namespace
-- [ ] 🤚 `kubectl exec -it postgres-0 -n shop -- psql -U postgres` → insert a test row → exit
-- [ ] 🤚 `kubectl delete pod postgres-0 -n shop` → wait for pod to restart as `postgres-0`
-- [ ] 🤚 `kubectl exec -it postgres-0 -n shop -- psql -U postgres` → verify the row still exists
-- [ ] 🤚 Fill in StatefulSets & Persistent Volumes section in `docs/CONCEPTS.md`
+- [x] `playbooks/03-state.md` follows established format
+- [x] `k8s/raw/03-postgres-statefulset.yaml` — StatefulSet named `postgres`, 1 replica, `postgres:16-alpine`, `volumeClaimTemplates` requesting 1Gi
+- [x] `k8s/raw/03-postgres-service.yaml` — headless Service for the StatefulSet
+- [x] 🤚 `kubectl apply -f` both manifests in the `shop` namespace
+- [x] 🤚 `kubectl exec -it postgres-0 -n shop -- psql -U postgres` → insert a test row → exit
+- [x] 🤚 `kubectl delete pod postgres-0 -n shop` → wait for pod to restart as `postgres-0`
+- [x] 🤚 `kubectl exec -it postgres-0 -n shop -- psql -U postgres` → verify the row still exists
+- [x] 🤚 Fill in StatefulSets & Persistent Volumes section in `docs/CONCEPTS.md`
 
 **🤚 What to Observe:**
 After deletion, the new pod comes back as `postgres-0` — not a random name. The StatefulSet guarantees stable, ordered identity. The data survived because the PersistentVolumeClaim (PVC) was not deleted — it is a separate object that outlives the pod. The pod is ephemeral; the volume is not. Run `kubectl get pvc -n shop` to see the claim still bound after the pod restart.
