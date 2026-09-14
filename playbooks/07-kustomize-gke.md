@@ -687,9 +687,130 @@ SELECT id, name, price FROM products;
 #### C. Why is there no Public URL yet? (ClusterIP vs LoadBalancer)
 By default, Kubernetes services are created as **`ClusterIP`** (secure by default). They receive an internal IP reachable only by other pods inside the cluster.
 
-To expose a service to the public internet:
-* **`type: LoadBalancer`**: Tells Google Cloud to provision an external Network Load Balancer with a public IPv4 address.
-* **`Ingress` / `Gateway API`**: Production standard. Uses a single Load Balancer with SSL termination and routes requests by hostname/path (e.g., `/products` → catalog).
+To expose services to the public internet:
+* **`type: LoadBalancer`**: Tells Google Cloud to provision an external Network Load Balancer with a public IPv4 address for one service.
+* **`Ingress` / `Gateway API`**: Production standard. Uses a single Cloud HTTP(S) Load Balancer with SSL termination and routes requests by hostname/path (e.g., `/products` → catalog, `/orders` → orders).
+
+---
+
+### Step 15: Expose Public Ingress & Access via Public URL
+
+We route external traffic to both microservices through a single Google Cloud HTTP Load Balancer using Kubernetes Ingress.
+
+#### 1. The Ingress Manifest (`k8s/overlays/gke/ingress.yaml`)
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop-ingress
+  namespace: shop
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /products
+        pathType: Prefix
+        backend:
+          service:
+            name: catalog
+            port:
+              number: 8080
+      - path: /orders
+        pathType: Prefix
+        backend:
+          service:
+            name: orders
+            port:
+              number: 8083
+```
+
+#### 2. Deploy the Ingress
+```bash
+kubectl apply -k k8s/overlays/gke/
+```
+
+#### 3. Watch for Public IP Allocation (~3–5 minutes)
+Google's GKE Ingress controller automatically provisions a Google Cloud External HTTP Load Balancer and health checks:
+```bash
+kubectl get ingress shop-ingress -n shop -w
+```
+Wait until the `ADDRESS` column displays a real public IPv4 address (e.g. `34.120.x.x`):
+```text
+NAME           CLASS    HOSTS   ADDRESS          PORTS   AGE
+shop-ingress   <none>   *       34.120.55.10     80      4m
+```
+
+#### 4. Test via Real Public URL in Browser or Terminal
+```bash
+INGRESS_IP=$(kubectl get ingress shop-ingress -n shop -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+
+# Test Catalog API through public Google Cloud Load Balancer
+curl http://${INGRESS_IP}/products
+
+# Test Orders API through public Google Cloud Load Balancer
+curl http://${INGRESS_IP}/orders
+```
+
+---
+
+### 🌐 Deep Dive: Ingress vs. API Gateway (Architectural Distinction)
+
+| Feature | Kubernetes Ingress | API Gateway (e.g. GCP API Gateway, Kong, Apigee) |
+|---|---|---|
+| **Primary Job** | **Network Layer 7 Routing & TLS Termination** | **Application Security, Policy Enforcement & Governance** |
+| **Routing** | Path (`/products`, `/orders`) and Host (`api.domain.com`) | Advanced path, HTTP method, header, and query param matching |
+| **Authentication** | SSL/TLS certificates | API Keys, JWT verification, OAuth2, OpenID Connect, Firebase Auth |
+| **Rate Limiting** | None or coarse | Granular per client / IP / API key (e.g., 100 requests/minute) |
+| **API Management** | ❌ None | ✅ Developer portal, analytics, quotas, monetization, mocking |
+| **Where it lives** | Directly inside Kubernetes (`networking.k8s.io`) | Can live outside the cluster or as an edge gateway proxy |
+
+---
+
+### 🚀 Deep Dive: The Standard Production Deployment Process (GitOps & CI/CD)
+
+In enterprise production, developers do not run `docker build` or `kubectl apply` from local machines. Workloads are delivered via automated pipelines:
+
+```mermaid
+flowchart LR
+    DEV["👨‍💻 Developer"] -->|"1. git push"| GIT[("Git Repo\n(Source of Truth)")]
+
+    subgraph CI["Continuous Integration (CI)"]
+        TEST["2. Unit & Integration Tests"]
+        BUILD["3. Multi-Arch Build (linux/amd64)"]
+        SCAN["4. Security Vulnerability Scan (Trivy)"]
+        PUSH["5. Push to Artifact Registry"]
+        UPDATE["6. Update Kustomize image tag in Git"]
+
+        TEST --> BUILD --> SCAN --> PUSH --> UPDATE
+    end
+
+    subgraph CD["Continuous Delivery (GitOps)"]
+        ARGO["7. ArgoCD / Flux in Cluster"]
+        SYNC["8. Automated Kustomize apply"]
+        CANARY["9. Canary / Progressive Traffic Shift"]
+
+        ARGO --> SYNC --> CANARY
+    end
+
+    GIT --> CI
+    UPDATE --> GIT
+    GIT --> ARGO
+```
+
+1. **Commit & PR**: Code is committed to a Git branch and reviewed.
+2. **CI Pipeline**:
+   - Compiles and runs test suites.
+   - Builds `linux/amd64` multi-arch container images using `docker buildx`.
+   - Scans images for CVE vulnerabilities.
+   - Pushes images with immutable commit SHA tags (`catalog:sha-5a984a5`).
+   - Automatically updates the image tag in `k8s/overlays/<env>/kustomization.yaml`.
+3. **GitOps Engine (ArgoCD / Flux)**:
+   - An in-cluster operator continuously compares desired state in Git against live cluster state.
+   - Automatically synchronizes changes without granting developers direct cluster access.
+4. **Progressive Delivery**:
+   - New versions are rolled out incrementally (Canary deployment), routing 5% of traffic and monitoring error rates before rolling out to 100%.
 
 ---
 

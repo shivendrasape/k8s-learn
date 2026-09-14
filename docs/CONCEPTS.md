@@ -106,6 +106,31 @@
 | **`LoadBalancer`** | Public Internet | ✅ Dedicated Cloud Public IPv4 | Cloud fee (~$18–$25/mo) | Exposing a single standalone service directly to the internet. |
 | **`Ingress` / `Gateway API`** | Public Internet | ✅ Shared Public IPv4 / Domain | Single LB fee (~$18–$25/mo) | Production standard. Routes multiple microservices by URL path (`/products`, `/orders`) with TLS/SSL. |
 
+#### Reference: Ingress vs. API Gateway
+
+| Feature | Kubernetes Ingress | API Gateway (e.g. GCP API Gateway, Kong, Apigee) |
+|---|---|---|
+| **Layer** | Network Layer 7 (Routing & TLS) | Application Governance & Security |
+| **Routing** | Path (`/products`, `/orders`) and Host | Advanced path, HTTP method, header, and query param matching |
+| **Authentication** | SSL/TLS certificates | API Keys, JWT verification, OAuth2, OpenID Connect |
+| **Rate Limiting** | None or coarse | Granular per client / IP / API key (e.g., 100 requests/minute) |
+| **API Management** | ❌ None | ✅ Developer portal, analytics, quotas, monetization |
+
+#### Reference: The Standard Production Deployment Process (GitOps & CI/CD)
+
+1. **Commit to Git**: Developers push code and open a Pull Request.
+2. **CI Pipeline (Automated Build & Scan)**:
+   - Compiles and runs test suites.
+   - Builds `linux/amd64` multi-arch container images (`docker buildx`).
+   - Scans images for CVE vulnerabilities (Trivy / Snyk).
+   - Pushes to Artifact Registry with immutable commit SHA tags.
+   - Automatically commits updated image tag to the Kustomize overlay in Git.
+3. **CD / GitOps (ArgoCD / Flux)**:
+   - An in-cluster controller monitors Git and applies changes to the cluster (`kubectl apply -k`).
+   - Eliminates manual cluster access by engineers.
+4. **Progressive Delivery**:
+   - Ingress/Gateway shifts 5% of traffic to canary pods, monitors telemetry, and rolls forward to 100% on success.
+
 <!-- Your notes go here -->
 
 ---

@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ingress.yaml
 
 # Rewrite local image names to Artifact Registry paths
 # Replace REGION and PROJECT_ID with your actual values
