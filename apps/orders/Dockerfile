@@ -1,5 +1,5 @@
-# Stage 1: Build the application JAR using Maven Wrapper
-FROM eclipse-temurin:25-jdk AS builder
+# Stage 1: Build the application JAR using native host platform (avoids QEMU untar bug)
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS builder
 WORKDIR /workspace
 
 # Copy wrapper and configuration first for dependency layer caching

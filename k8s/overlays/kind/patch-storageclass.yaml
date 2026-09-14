@@ -1,0 +1,18 @@
+# kind uses the 'standard' StorageClass (rancher.io/local-path provisioner)
+# No patch needed — base manifests have no storageClassName, so kind's default is used
+# This file is a placeholder to make the overlay structure explicit
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: shop
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 1Gi

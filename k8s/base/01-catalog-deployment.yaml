@@ -18,7 +18,7 @@ spec:
       containers:
       - name: catalog
         image: shop/catalog:dev
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
           name: http
@@ -38,12 +38,18 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         # Kubernetes Probes (Spring Boot Actuator)
+        # startupProbe: Gives slow-starting apps (like Java/Spring) time to boot before liveness/readiness kick in.
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 5
         # livenessProbe: Checks if the application is deadlocked or crashed. On failure, kubelet restarts the container.
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
             port: 8080
-          initialDelaySeconds: 20
           periodSeconds: 10
           timeoutSeconds: 2
           failureThreshold: 3
@@ -53,7 +59,6 @@ spec:
           httpGet:
             path: /actuator/health/readiness
             port: 8080
-          initialDelaySeconds: 15
           periodSeconds: 5
           timeoutSeconds: 2
           failureThreshold: 2

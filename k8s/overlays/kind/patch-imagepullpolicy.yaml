@@ -1,0 +1,25 @@
+# Patches both catalog and orders to imagePullPolicy: Never
+# (images are local; kind cannot pull from a registry)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+  namespace: shop
+spec:
+  template:
+    spec:
+      containers:
+        - name: catalog
+          imagePullPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  namespace: shop
+spec:
+  template:
+    spec:
+      containers:
+        - name: orders
+          imagePullPolicy: Never

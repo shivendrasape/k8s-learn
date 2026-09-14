@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Rewrite local image names to Artifact Registry paths
+# Replace REGION and PROJECT_ID with your actual values
+images:
+  - name: shop/catalog:dev
+    newName: us-central1-docker.pkg.dev/k8s-learn-shivendrag/shop/catalog
+    newTag: dev
+  - name: shop/orders:dev
+    newName: us-central1-docker.pkg.dev/k8s-learn-shivendrag/shop/orders
+    newTag: dev
+
+patches:
+  - path: patch-storageclass.yaml

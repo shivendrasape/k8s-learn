@@ -454,8 +454,8 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 - [x] `k8s/base/` contains copies of all deployment, service, statefulset, configmap, and secret manifests
 - [x] `k8s/base/kustomization.yaml` lists all resources
 - [x] `k8s/raw/` is unchanged
-- [ ] 🤚 `kubectl kustomize k8s/base/` renders valid YAML
-- [ ] 🤚 Diff: output matches raw originals (ordering may differ, content should not)
+- [x] 🤚 `kubectl kustomize k8s/base/` renders valid YAML
+- [x] 🤚 Diff: output matches raw originals (ordering may differ, content should not)
 
 **🤚 What to Observe:**
 `kubectl kustomize k8s/base/` should output YAML identical (modulo ordering) to concatenating all your raw manifests. This confirms that the base is a faithful copy — no changes yet. The overlay is where environment-specific differences live.
@@ -474,14 +474,14 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 **Description:** Agent creates environment-specific overlays that patch the base for each target environment. Three overlays are created: `kind/` (local), `gke/` (GKE Autopilot), and `eks/` (Amazon EKS stub — fully wired in Task 18 with real ECR values).
 
 **Acceptance criteria:**
-- [ ] `k8s/overlays/kind/kustomization.yaml` references `../../base`; patches: `imagePullPolicy: Never`, local image names, `standard` StorageClass
-- [ ] `k8s/overlays/gke/kustomization.yaml` references `../../base`; patches: Artifact Registry image path, `standard-rwo` StorageClass, higher resource limits
-- [ ] `k8s/overlays/eks/kustomization.yaml` references `../../base`; stub patches: placeholder ECR image path (`<account>.dkr.ecr.<region>.amazonaws.com/shop/<app>:dev`), `gp3` StorageClass
-- [ ] 🤚 `kubectl kustomize k8s/overlays/kind/` renders valid YAML
-- [ ] 🤚 `kubectl kustomize k8s/overlays/gke/` renders valid YAML
-- [ ] 🤚 `kubectl kustomize k8s/overlays/eks/` renders valid YAML (stub placeholder values are fine at this stage)
-- [ ] 🤚 Diff the kind vs. GKE outputs — only image path + StorageClass lines should differ
-- [ ] 🤚 Diff the GKE vs. EKS outputs — only image registry URL + StorageClass name should differ (same pattern, different values)
+- [x] `k8s/overlays/kind/kustomization.yaml` references `../../base`; patches: `imagePullPolicy: Never`, local image names, `standard` StorageClass
+- [x] `k8s/overlays/gke/kustomization.yaml` references `../../base`; patches: Artifact Registry image path, `standard-rwo` StorageClass, higher resource limits
+- [x] `k8s/overlays/eks/kustomization.yaml` references `../../base`; stub patches: placeholder ECR image path (`<account>.dkr.ecr.<region>.amazonaws.com/shop/<app>:dev`), `gp3` StorageClass
+- [x] 🤚 `kubectl kustomize k8s/overlays/kind/` renders valid YAML
+- [x] 🤚 `kubectl kustomize k8s/overlays/gke/` renders valid YAML
+- [x] 🤚 `kubectl kustomize k8s/overlays/eks/` renders valid YAML (stub placeholder values are fine at this stage)
+- [x] 🤚 Diff the kind vs. GKE outputs — only image path + StorageClass lines should differ
+- [x] 🤚 Diff the GKE vs. EKS outputs — only image registry URL + StorageClass name should differ (same pattern, different values)
 
 **🤚 What to Observe:**
 Run: `diff <(kubectl kustomize k8s/overlays/gke/) <(kubectl kustomize k8s/overlays/eks/)`. The diff will show exactly two types of changes: image registry URLs and StorageClass names. Everything else — Deployments, Services, ConfigMaps, Secrets, probes, the seed Job — is byte-for-byte identical. This is the core value of Kustomize: one source of truth, clearly named exceptions.
@@ -502,16 +502,16 @@ Run: `diff <(kubectl kustomize k8s/overlays/gke/) <(kubectl kustomize k8s/overla
 **Description:** Follow `playbooks/07-kustomize-gke.md` to create a dedicated GCP project from scratch, authenticate, push images to Artifact Registry, provision a GKE Autopilot cluster, and deploy using the GKE overlay. Run the cleanup at the end.
 
 **Acceptance criteria:**
-- [ ] 🤚 New GCP project created: `gcloud projects create k8s-learn-<yourname>`
-- [ ] 🤚 Billing account linked and required APIs enabled
-- [ ] 🤚 $5/month budget alert configured in GCP Billing console
-- [ ] 🤚 Artifact Registry repository created and `docker` configured to push to it
-- [ ] 🤚 Images pushed: `docker push <region>-docker.pkg.dev/<project>/shop/catalog:dev` and `orders:dev`
-- [ ] 🤚 GKE Autopilot cluster created and `kubectl` context switched
-- [ ] 🤚 `kubectl apply -k k8s/overlays/gke/` deploys all resources to GKE
-- [ ] 🤚 `kubectl get pods -n shop` on GKE context shows all pods Running
-- [ ] 🤚 `orders → catalog → postgres` data flow verified end-to-end on GKE
-- [ ] 🤚 Fill in Kustomize section in `docs/CONCEPTS.md`
+- [x] 🤚 New GCP project created: `gcloud projects create k8s-learn-<yourname>`
+- [x] 🤚 Billing account linked and required APIs enabled
+- [x] 🤚 $5/month budget alert configured in GCP Billing console
+- [x] 🤚 Artifact Registry repository created and `docker` configured to push to it
+- [x] 🤚 Images pushed: `docker push <region>-docker.pkg.dev/<project>/shop/catalog:dev` and `orders:dev`
+- [x] 🤚 GKE Autopilot cluster created and `kubectl` context switched
+- [x] 🤚 `kubectl apply -k k8s/overlays/gke/` deploys all resources to GKE
+- [x] 🤚 `kubectl get pods -n shop` on GKE context shows all pods Running
+- [x] 🤚 `orders → catalog → postgres` data flow verified end-to-end on GKE
+- [x] 🤚 Fill in Kustomize section in `docs/CONCEPTS.md`
 - [ ] 🤚 **Cleanup:** `gcloud projects delete <project-id>` run and confirmed
 
 **🤚 What to Observe:**

@@ -59,7 +59,8 @@ Install the following tools before starting Playbook 00. Versions listed are the
 | `kubectl` | 1.31+ | `brew install kubectl` or bundled with Docker Desktop |
 | Java | 25 | [sdkman.io](https://sdkman.io/) (`sdk install java 25-open`) |
 | Maven | 3.9+ | `brew install maven` or bundled with IDE |
-| `gcloud` CLI | latest | [cloud.google.com/sdk](https://cloud.google.com/sdk/docs/install) — only needed for Playbook 07 |
+| `gcloud` CLI | latest | [cloud.google.com/sdk](https://cloud.google.com/sdk/docs/install) — needed for Playbook 07 |
+| `gke-gcloud-auth-plugin` | latest | `gcloud components install gke-gcloud-auth-plugin` — needed for GKE `kubectl` |
 
 Verify your setup:
 

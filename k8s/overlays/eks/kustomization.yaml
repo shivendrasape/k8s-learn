@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Stub ECR image paths — will be wired with real AWS account/region in Task 18
+images:
+  - name: shop/catalog:dev
+    newName: <account>.dkr.ecr.<region>.amazonaws.com/shop/catalog
+    newTag: dev
+  - name: shop/orders:dev
+    newName: <account>.dkr.ecr.<region>.amazonaws.com/shop/orders
+    newTag: dev
+
+patches:
+  - path: patch-storageclass.yaml

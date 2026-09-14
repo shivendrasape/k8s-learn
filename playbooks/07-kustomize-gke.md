@@ -100,7 +100,11 @@ spec:
   - metadata:
       name: postgres-data
     spec:
+      accessModes: ["ReadWriteOnce"]
       storageClassName: standard-rwo   # overrides the base value
+      resources:
+        requests:
+          storage: 1Gi
 ```
 
 **JSON 6902 Patch** — surgical `add`, `replace`, `remove` operations by path. Useful for single-field changes.
@@ -185,11 +189,11 @@ flowchart TD
 
 ## 🛠️ Step-by-Step Hands-on Instructions
 
-> **Prerequisites:** `gcloud` CLI installed. `docker` installed. `kubectl` installed. Your `kind` cluster (from earlier playbooks) is irrelevant for this playbook — we are provisioning a fresh cloud cluster.
+> **Prerequisites:** `gcloud` CLI installed. `gke-gcloud-auth-plugin` installed. `docker` installed. `kubectl` installed. Your `kind` cluster (from earlier playbooks) is irrelevant for this playbook — we are provisioning a fresh cloud cluster.
 
 ---
 
-### Step 1: Install and Initialise `gcloud`
+### Step 1: Install and Initialise `gcloud` & `gke-gcloud-auth-plugin`
 
 If you do not have the Google Cloud CLI:
 
@@ -199,6 +203,17 @@ brew install --cask google-cloud-sdk
 
 # Verify
 gcloud version
+```
+
+#### Install the GKE Auth Plugin (Mandatory for Kubernetes 1.26+)
+Kubernetes 1.26+ removed in-tree cloud authentication. `kubectl` requires `gke-gcloud-auth-plugin` to authenticate against GKE clusters:
+
+```bash
+# Install the auth plugin component
+gcloud components install gke-gcloud-auth-plugin
+
+# Verify installation
+gke-gcloud-auth-plugin --version
 ```
 
 Authenticate and set defaults:
@@ -337,18 +352,18 @@ gcloud artifacts repositories list --location=$REGION --project=$PROJECT_ID
 
 ### Step 6: Build and Push Images to Artifact Registry
 
-> We are building the same application images as before, but tagging them with the Artifact Registry path instead of the local `shop/` prefix.
+> ⚠️ **Architecture Note (Apple Silicon / Mac Users):** Cloud clusters (GKE Autopilot) run on **`linux/amd64`** (Intel/AMD) nodes. When building on an Apple Silicon Mac (M1/M2/M3/M4), you must specify `--platform=linux/amd64`, otherwise Docker will build an `arm64` image which fails on GKE with `no match for platform in manifest: not found`.
 
 ```bash
 # Set the full registry prefix
 export REGISTRY="${REGION}-docker.pkg.dev/${PROJECT_ID}/shop"
 
-# Build and push catalog
-docker build -t ${REGISTRY}/catalog:dev apps/catalog/
+# Build for linux/amd64 and push catalog
+docker build --platform=linux/amd64 -t ${REGISTRY}/catalog:dev apps/catalog/
 docker push ${REGISTRY}/catalog:dev
 
-# Build and push orders
-docker build -t ${REGISTRY}/orders:dev apps/orders/
+# Build for linux/amd64 and push orders
+docker build --platform=linux/amd64 -t ${REGISTRY}/orders:dev apps/orders/
 docker push ${REGISTRY}/orders:dev
 ```
 
@@ -411,6 +426,10 @@ mkdir -p k8s/base
 
 # Copy all raw manifests into base (raw/ stays untouched)
 cp k8s/raw/*.yaml k8s/base/
+
+# Ensure base uses 'IfNotPresent' (standard for remote registries)
+# The kind overlay patches this back to 'Never' for local dev
+sed -i '' 's/imagePullPolicy: Never/imagePullPolicy: IfNotPresent/g' k8s/base/01-catalog-deployment.yaml k8s/base/05-orders-deployment.yaml
 ```
 
 Create `k8s/base/kustomization.yaml`:
@@ -494,8 +513,6 @@ spec:
 `k8s/overlays/kind/patch-storageclass.yaml`:
 ```yaml
 # kind uses the 'standard' StorageClass (rancher.io/local-path provisioner)
-# No patch needed — base manifests have no storageClassName, so kind's default is used
-# This file is a placeholder to make the overlay structure explicit
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -506,7 +523,11 @@ spec:
   - metadata:
       name: postgres-data
     spec:
+      accessModes: ["ReadWriteOnce"]
       storageClassName: standard
+      resources:
+        requests:
+          storage: 1Gi
 ```
 
 ---
@@ -544,7 +565,6 @@ patches:
 `k8s/overlays/gke/patch-storageclass.yaml`:
 ```yaml
 # GKE Autopilot uses 'standard-rwo' (Google Compute Engine Persistent Disk, ReadWriteOnce)
-# This replaces the base StatefulSet's volumeClaimTemplate storageClassName
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -555,7 +575,11 @@ spec:
   - metadata:
       name: postgres-data
     spec:
+      accessModes: ["ReadWriteOnce"]
       storageClassName: standard-rwo
+      resources:
+        requests:
+          storage: 1Gi
 ```
 
 **Verify the GKE overlay renders valid YAML:**
