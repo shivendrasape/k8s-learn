@@ -659,10 +659,37 @@ kubectl exec -it $ORDERS_POD -n shop -- curl -s http://localhost:8083/orders
 kubectl get nodes
 ```
 
-**What to Observe:**
-- `kubectl get nodes` shows nodes that appeared automatically. You never specified instance types or counts.
-- The same `kubectl apply -k` command worked identically on `kind` and GKE. The application code is unchanged.
-- GKE Autopilot provisions exactly the compute requested by your Pod `resources.requests`, nothing more.
+---
+
+### Step 14: Inspecting Workloads & Database in Google Cloud
+
+#### A. Viewing in the Google Cloud Console (Web Browser)
+Visit **[https://console.cloud.google.com](https://console.cloud.google.com)** with your project selected:
+1. **Kubernetes Engine → Workloads**:
+   - See `catalog`, `orders`, `postgres`, and `catalog-db-seed` with green health status.
+   - Click any workload to view **real-time CPU & Memory charts**, active pods, and events.
+2. **Viewing Live Container Logs**:
+   - In any Workload details page, click the **Logs** tab to stream live logs (Tomcat, Spring Boot, SQL queries).
+   - Alternatively, search for **Logs Explorer** and query: `resource.type="k8s_container" resource.labels.namespace_name="shop"`.
+3. **Kubernetes Engine → Storage**:
+   - Inspect `postgres-data-postgres-0` to see the actual Google Compute Engine Persistent Disk (`standard-rwo`).
+
+#### B. Querying the Cloud Database
+```bash
+# Open an interactive PostgreSQL shell in the cloud database:
+kubectl exec -it postgres-0 -n shop -- psql -U postgres -d catalog
+
+# Run SQL queries:
+SELECT id, name, price FROM products;
+\q
+```
+
+#### C. Why is there no Public URL yet? (ClusterIP vs LoadBalancer)
+By default, Kubernetes services are created as **`ClusterIP`** (secure by default). They receive an internal IP reachable only by other pods inside the cluster.
+
+To expose a service to the public internet:
+* **`type: LoadBalancer`**: Tells Google Cloud to provision an external Network Load Balancer with a public IPv4 address.
+* **`Ingress` / `Gateway API`**: Production standard. Uses a single Load Balancer with SSL termination and routes requests by hostname/path (e.g., `/products` → catalog).
 
 ---
 
@@ -702,12 +729,26 @@ GKE uses Workload Identity Federation to pull from Artifact Registry in the same
 ### 4. Postgres PVC and `standard-rwo`
 `ReadWriteOnce` means the volume can only be mounted by **one node at a time**. For a single-replica StatefulSet (as in this project), this is correct. If you ever scale Postgres to multiple replicas (e.g., a read replica), you need a different storage solution (Cloud SQL, AlloyDB, or a distributed storage system).
 
+### 5. Multi-Architecture Builds: Apple Silicon (`arm64`) vs Cloud (`amd64`)
+Developer machines on Apple Silicon build `arm64` images by default. Cloud nodes run on x86/64 (`linux/amd64`). Building directly without `--platform=linux/amd64` causes GKE to fail with `no match for platform in manifest: not found`. In multi-stage Dockerfiles, using `FROM --platform=$BUILDPLATFORM` for compile stages avoids slow and buggy QEMU emulation while cross-compiling.
+
+### 6. JVM Cold Starts and `startupProbe`
+Spring Boot and Hibernate may take 30–45 seconds to initialize database connection pools on burstable cloud compute. A `livenessProbe` with a short delay will prematurely kill the container in a restart loop. A `startupProbe` grants up to 2–3 minutes for cold starts and suspends liveness/readiness checks until initialization succeeds.
+
+### 7. Kustomize `volumeClaimTemplates` Strategic Merge Patch Caveat
+In Kubernetes, `volumeClaimTemplates` is an array of PVCs without individual field merge keys. A partial patch replacing `storageClassName` will overwrite the entire `spec` if `accessModes` and `resources` are not included in the patch.
+
 ---
 
 ## 🛟 Troubleshooting Guide
 
 | Symptom | Probable Cause | Fix |
 |---|---|---|
+| `gke-gcloud-auth-plugin not found` | Standalone GKE auth plugin missing on local machine | Run `gcloud components install gke-gcloud-auth-plugin`. |
+| `ErrImageNeverPull` on GKE | Manifest has `imagePullPolicy: Never` | Ensure base manifests use `IfNotPresent`. `Never` is strictly for local `kind`. |
+| `no match for platform in manifest: not found` | Image was built for `arm64` (Apple Silicon) instead of `linux/amd64` | Build with `docker build --platform=linux/amd64 ...` and use `FROM --platform=$BUILDPLATFORM` for builder stages. |
+| Container killed during startup (`Exit Code 143`) | Liveness probe failed before Spring Boot / JVM finished starting | Add a `startupProbe` with `failureThreshold: 30` and `periodSeconds: 5` to allow cold start. |
+| `volumeClaimTemplates: Required value: accessModes` | Strategic merge patch omitted PVC fields in StatefulSet | Include `accessModes: ["ReadWriteOnce"]` and `resources.requests.storage` inside the patch. |
 | Pod stuck `Pending` on GKE for > 5 min | Autopilot quota not available in region, or resource request too large | `kubectl describe pod <name> -n shop` → check Events for quota messages. Try a different region. |
 | `ImagePullBackOff` on GKE | Image not pushed to Artifact Registry, or wrong registry URL in overlay | `kubectl describe pod <name> -n shop` → check image URL in Events. Verify `docker push` succeeded. |
 | PVC stuck `Pending` | Wrong StorageClass name | `kubectl get pvc -n shop`. Check `storageClassName` in GKE overlay. On GKE Autopilot, use `standard-rwo`. |

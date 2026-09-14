@@ -97,6 +97,15 @@
 - **`kubectl port-forward` (Developer Tunnel):** Connects a temporary pipe from your laptop to one specific Pod or Deployment through the Kubernetes API server. If you close your terminal or your laptop sleeps, the tunnel dies.
 - **`Kubernetes Service` (Production Routing):** A durable, in-cluster load balancer. It assigns a stable virtual IP (`ClusterIP`) and DNS name. Even if Pods are killed and replaced with new IPs, the Service automatically routes traffic to healthy pods matching its label selector.
 
+#### Reference: Service Types & External Access Comparison
+
+| Service Type | Scope | External URL / IP? | Cloud Cost | Primary Use Case |
+|---|---|---|---|---|
+| **`ClusterIP`** *(Default)* | In-cluster only | ❌ None | Free | Internal microservices, databases, backend APIs (secure by default). |
+| **`NodePort`** | Node network | Port on node IP (`<NodeIP>:30000-32767`) | Free | Local dev clusters (`kind`), bare-metal on-prem, direct internal routing. |
+| **`LoadBalancer`** | Public Internet | ✅ Dedicated Cloud Public IPv4 | Cloud fee (~$18–$25/mo) | Exposing a single standalone service directly to the internet. |
+| **`Ingress` / `Gateway API`** | Public Internet | ✅ Shared Public IPv4 / Domain | Single LB fee (~$18–$25/mo) | Production standard. Routes multiple microservices by URL path (`/products`, `/orders`) with TLS/SSL. |
+
 <!-- Your notes go here -->
 
 ---
@@ -291,6 +300,28 @@
 - **Base vs. Overlay:** `base/` holds complete, valid, environment-agnostic YAML. `overlays/<target>/` imports the base and declares only what is different using transformers (like `images:`) or patches.
 - **The Diff Payoff:** `diff <(kubectl kustomize overlays/kind/) <(kubectl kustomize overlays/gke/)` reveals the exact differences between local and cloud: only the image registry URL and the StorageClass name (`standard` vs `standard-rwo`).
 - **Kustomize vs. Helm:** Choose Kustomize for first-party microservices where you want native `kubectl` integration without the complexity of template languages. Choose Helm when packaging reusable software for distribution to external consumers or installing third-party vendor applications.
+
+#### Reference: The Laptop-to-Cloud Transition (Production Lessons)
+
+When transitioning from local clusters (`kind`) to production cloud Kubernetes (GKE/EKS), four architectural boundaries emerge:
+
+1. **Multi-Architecture Builds (`arm64` vs `amd64`):**
+   - Developer laptops often run Apple Silicon (`arm64`), whereas cloud Kubernetes nodes run Intel/AMD (`linux/amd64`).
+   - Pushing an `arm64` image to a cloud cluster causes kubelet to fail with `no match for platform in manifest: not found`.
+   - **Production Solution:** In CI/CD pipelines, images are compiled for `linux/amd64` or multi-arch manifest lists (`docker buildx build --platform=linux/amd64,linux/arm64`). In multi-stage builds, using `FROM --platform=$BUILDPLATFORM` for the compiler stage avoids slow and unstable QEMU CPU emulation.
+
+2. **Probe Lifecycle & `startupProbe`:**
+   - On burstable cloud compute with memory/CPU limits, heavy runtime stacks (like Java, Spring Boot, or .NET) take 30–60 seconds to cold start and connect to databases.
+   - A `livenessProbe` with short initial delay will repeatedly kill the container before it finishes booting (`Exit Code 143`).
+   - **Production Solution:** Always define a `startupProbe` for slow-starting applications. It polls up to several minutes without triggering pod kills, and seamlessly hands over to liveness/readiness probes once the app is healthy.
+
+3. **Strategic Merge Patches on PVC Arrays:**
+   - Kustomize patches merge dictionaries, but replace list elements without unique merge keys.
+   - Patching a StatefulSet's `volumeClaimTemplates` to change `storageClassName` will overwrite `accessModes` and `resources` if they are not explicitly specified in the patch.
+
+4. **Public Exposure (Secure by Default):**
+   - Kubernetes services default to `ClusterIP` to protect internal databases and microservices from public exposure.
+   - Public access requires an explicit `LoadBalancer` (allocating cloud IPs) or an `Ingress`/`Gateway API` controller providing layer-7 host and path routing with TLS termination.
 
 <!-- Your notes go here -->
 
