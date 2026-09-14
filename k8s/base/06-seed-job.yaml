@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-db-seed
+  namespace: shop
+  labels:
+    app: catalog-db-seed
+spec:
+  # Number of retries before marking this Job as failed
+  backoffLimit: 3
+  # Retain completed pod for debugging, but clean up after 5 minutes in automated environments (optional)
+  # ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: catalog-db-seed
+    spec:
+      # Batch Jobs require either 'OnFailure' or 'Never' (never 'Always')
+      restartPolicy: OnFailure
+      containers:
+      - name: seed
+        image: postgres:16-alpine
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: catalog-secret
+              key: SPRING_DATASOURCE_PASSWORD
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "=========================================="
+          echo "Connecting to PostgreSQL at postgres:5432..."
+          echo "Database: catalog, User: postgres"
+          echo "=========================================="
+          
+          # Wait briefly for database DNS and port readiness
+          until pg_isready -h postgres -p 5432 -U postgres -d catalog; do
+            echo "Waiting for postgres service to accept connections..."
+            sleep 2
+          done
+
+          echo "Executing idempotent seed SQL..."
+          psql -h postgres -U postgres -d catalog << 'EOF'
+          -- Ensure table exists even if Hibernate hasn't initialized yet
+          CREATE TABLE IF NOT EXISTS products (
+              id BIGSERIAL PRIMARY KEY,
+              name VARCHAR(255) NOT NULL,
+              price NUMERIC(10, 2) NOT NULL,
+              description TEXT
+          );
+
+          -- Idempotent inserts: will not duplicate rows if run multiple times
+          INSERT INTO products (name, price, description)
+          SELECT 'Kubernetes in Action', 49.99, 'Comprehensive guide to Kubernetes architecture and primitives'
+          WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Kubernetes in Action');
+
+          INSERT INTO products (name, price, description)
+          SELECT 'Cloud Native Patterns', 39.99, 'Designing resilient microservices in modern cloud infrastructure'
+          WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Cloud Native Patterns');
+
+          INSERT INTO products (name, price, description)
+          SELECT 'Designing Data-Intensive Applications', 54.99, 'The definitive guide to distributed data systems'
+          WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Designing Data-Intensive Applications');
+
+          -- Print current table contents for verification in Job logs
+          SELECT id, name, price FROM products ORDER BY id;
+          EOF
+
+          echo "=========================================="
+          echo "Database seeding finished successfully."
+          echo "=========================================="

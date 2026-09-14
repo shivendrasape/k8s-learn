@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+  namespace: shop
+  labels:
+    app: catalog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: catalog
+  template:
+    metadata:
+      labels:
+        app: catalog
+    spec:
+      containers:
+      - name: catalog
+        image: shop/catalog:dev
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: catalog-config
+        - secretRef:
+            name: catalog-secret
+        # Demonstration: Spring Boot property hierarchy.
+        # Container args in K8s override both environment variables and application.yml!
+        # args: ["--catalog.welcome-message=Overridden via K8s Pod Container Args!"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        # Kubernetes Probes (Spring Boot Actuator)
+        # livenessProbe: Checks if the application is deadlocked or crashed. On failure, kubelet restarts the container.
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        # readinessProbe: Checks if the application is ready to receive network traffic.
+        # On failure, the pod is removed from the Service Endpoints/EndpointSlice (no restart occurs).
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+

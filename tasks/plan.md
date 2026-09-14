@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build practical Kubernetes competence by designing, deploying, and operating three interconnected microservices (`catalog`, `orders`, `postgres`) on a local `kind` cluster, then replicating the deployment on GKE Autopilot using Kustomize overlays. Requirements live in `docs/SPEC-kubernetes-learning.md`. Playbooks in `playbooks/` are the executable learning surface. Task details and checkpoints live in `tasks/todo.md`.
+Build practical Kubernetes competence by designing, deploying, and operating three interconnected microservices (`catalog`, `orders`, `postgres`) on a local `kind` cluster, then replicating the deployment on **GKE Autopilot** and **Amazon EKS** using Kustomize overlays. Requirements live in `docs/SPEC-kubernetes-learning.md`. Playbooks in `playbooks/` are the executable learning surface. Task details and checkpoints live in `tasks/todo.md`.
 
 ## Architecture Decisions
 
@@ -10,9 +10,12 @@ Build practical Kubernetes competence by designing, deploying, and operating thr
 - **Minimal apps, maximal K8s.** Each Spring Boot app has exactly one `@RestController` returning a hardcoded JSON payload (no database logic in `catalog` until Playbook 04). The apps exist solely to validate Kubernetes behaviors.
 - **Image strategy is `docker build` → `kind load`.** No remote registry until Playbook 07 (GKE). Images are tagged `shop/<app>:dev`. The `kind` cluster is named `k8s-learn`.
 - **`k8s/raw/` is permanent.** When Kustomize is introduced in Playbook 07, the raw YAML is **copied** into `k8s/base/`, not moved or deleted. Both directories coexist so the learner can diff raw vs. Kustomize approaches.
-- **Playbooks are written incrementally.** Each playbook is authored immediately before its execution, not all upfront. Playbook 01 already exists; the rest are created as Phase 2/3/4 tasks.
+- **Playbooks are written incrementally.** Each playbook is authored immediately before its execution, not all upfront. Playbook 01 already exists; the rest are created as Phase 2/3/4/5 tasks.
 - **`docs/CONCEPTS.md` is a living glossary.** After each playbook, the concepts learned are recorded here with the learner's own mental model, not just definitions.
 - **Namespace is `shop`.** All workloads deploy to a single namespace for simplicity. Namespace isolation is noted in CONCEPTS.md but not exercised across multiple namespaces.
+- **Dedicated GCP project.** A brand-new GCP project is created solely for this learning exercise. `gcloud projects delete <id>` at the end wipes everything cleanly with zero billing risk to other workloads.
+- **EKS StorageClass is `gp3`.** Newer, cheaper, better performance than `gp2`. Requires EBS CSI driver add-on enabled on the cluster.
+- **Shared Kustomize base.** `k8s/base/` is identical across all cloud targets. Only the overlay differs — and between GKE and EKS, exactly two things change: image registry URL and StorageClass name.
 
 ### Dependency graph
 
@@ -39,7 +42,9 @@ Spring Boot apps (Task 1-2)
     │                               │
     │                               └── (all playbooks feed Kustomize)
     │
-    └── Playbook 07: Kustomize + GKE (Task 13-16)
+    ├── Playbook 07: Kustomize + GKE (Tasks 13-16)
+    │       │
+    │       └── Playbook 08: EKS (Tasks 17-19)  ← reuses k8s/base/ and overlay pattern
 
 Documentation (Tasks 4a, 4b) — parallel with all phases
 ```
@@ -106,18 +111,33 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 
 ### Phase 4: Cloud Transition — Kustomize & GKE Autopilot (Playbook 07)
 
-- [ ] Task 13: Write Playbook 07
+- [x] Task 13: Write Playbook 07 — full GCP project bootstrap, budget alert, Kustomize motivation
 - [ ] Task 14: Copy `k8s/raw/` into `k8s/base/` with `kustomization.yaml`
-- [ ] Task 15: Create `k8s/overlays/kind/` and `k8s/overlays/gke/` overlays
-- [ ] Task 16: Execute Playbook 07 — push images to Artifact Registry, deploy to GKE Autopilot
+- [ ] Task 15: Create `k8s/overlays/kind/`, `k8s/overlays/gke/`, and stub `k8s/overlays/eks/`
+- [ ] Task 16: Execute Playbook 07 — create GCP project, push to Artifact Registry, deploy to GKE Autopilot
+
+### Checkpoint: GKE Complete
+
+- [ ] Full system running on GKE Autopilot via `k8s/overlays/gke/`
+- [ ] `orders → catalog → postgres` end-to-end verified on GKE
+- [ ] `docs/CONCEPTS.md` Kustomize section filled
+- [ ] GCP project deleted (charges stopped)
+- [ ] Review with human before EKS phase
+
+### Phase 5: Cloud Transition — Amazon EKS (Playbook 08)
+
+- [ ] Task 17: Write Playbook 08 — AWS setup, `eksctl` cluster, ECR, EBS CSI add-on, budget alert, cleanup
+- [ ] Task 18: Finalize `k8s/overlays/eks/` — real ECR image paths, `gp3` StorageClass
+- [ ] Task 19: Execute Playbook 08 — push to ECR, provision EKS cluster, deploy via EKS overlay, cleanup
 
 ### Checkpoint: Complete
 
-- [ ] All spec success criteria met (see `docs/SPEC-kubernetes-learning.md` Success Criteria)
-- [ ] `k8s/raw/` intact alongside `k8s/base/` and `k8s/overlays/`
-- [ ] Full system running on GKE Autopilot via Kustomize overlays
-- [ ] `docs/CONCEPTS.md` fully populated across all playbooks, including the capstone comparison
-- [ ] `README.md` reflects the final project state
+- [ ] Full system running on Amazon EKS via `k8s/overlays/eks/`
+- [ ] `orders → catalog → postgres` end-to-end verified on EKS
+- [ ] Capstone comparison in `docs/CONCEPTS.md`: kind vs. GKE vs. EKS — what differed, what was identical
+- [ ] EKS cluster deleted, ECR repositories deleted (charges stopped)
+- [ ] `k8s/raw/` intact alongside `k8s/base/` and all three overlays
+- [ ] `README.md` reflects multi-cloud support
 - [ ] Review with human
 
 ## Parallelization Opportunities
@@ -132,11 +152,16 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 |---|---|---|
 | Toolchain / dependency compatibility | Low | Java 25 LTS installed locally; Spring Boot 4 starter configured and verified |
 | `kind load docker-image` fails silently | Med | Verify with `crictl images` inside the kind node after every load |
-| GKE Autopilot quota / billing not set up | Med | Task 13 includes `gcloud` setup commands; ask user about GCP project first |
-| Postgres StatefulSet on kind needs a StorageClass | Med | Use `standard` (kind default); document the difference vs. GKE's `standard-rwo` |
+| Unexpected GCP charges | Low | Dedicated project + `gcloud projects delete` at end + $5 budget alert before starting |
+| Unexpected AWS charges | Med | `eksctl delete cluster` + ECR delete documented as mandatory cleanup. $10 budget alert before execution |
+| EBS CSI driver not enabled on EKS | Med | Playbook 08 includes `eksctl` add-on commands; without it `gp3` PVCs will stay `Pending` |
+| EKS EC2 nodes idle after session | Med | Playbook 08 cleanup section is the mandatory last step; `eksctl delete cluster` terminates all nodes |
+| Postgres StatefulSet on kind needs a StorageClass | Med | Use `standard` (kind default); document the difference vs. GKE `standard-rwo` and EKS `gp3` |
 | Playbook ordering creates implicit coupling | Low | Each playbook has an explicit prerequisites section referencing prior playbooks |
 
 ## Open Questions
 
-- For the GKE transition in Phase 4, do you already have a GCP project set up, or should Playbook 07 include `gcloud` commands to create a project, enable billing, and provision the Autopilot cluster from scratch?
-- Should `catalog` connect to postgres from Playbook 03 (State) or Playbook 04 (Configuration)? The spec implies configuration comes after state. Current plan: Playbook 03 deploys postgres standalone, Playbook 04 wires catalog to it via ConfigMap/Secret.
+All resolved:
+1. **GCP project** — Dedicated new project created from scratch. Playbook 07 includes full bootstrap (`gcloud projects create` → billing → APIs → Artifact Registry → cluster).
+2. **EKS execution** — Real deployment. `eksctl` + ECR. Actual workloads run, then cleaned up.
+3. **EKS StorageClass** — `gp3` (EBS CSI driver).

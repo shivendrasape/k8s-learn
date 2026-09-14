@@ -410,12 +410,12 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 
 ## Checkpoint: After Tasks 9-12
 
-- [x] 🤚 Postgres data survives pod deletion
-- [x] 🤚 Config and secrets are injected, not baked into images
-- [x] 🤚 `orders` queries `catalog` via `http://catalog:8080`
-- [x] 🤚 Zero-downtime rolling update performed and verified
-- [x] 🤚 Probes configured; readiness failure forced and observed
-- [x] 🤚 Job successfully seeded the database
+- [x] Postgres data survives pod deletion
+- [x] Config and secrets are injected, not baked into images
+- [x] `orders` queries `catalog` via `http://catalog:8080`
+- [x] Zero-downtime rolling update performed and verified
+- [x] Probes configured; readiness failure forced and observed
+- [x] Job successfully seeded the database
 - [x] `docs/CONCEPTS.md` Playbooks 03–06 sections filled
 - [ ] Human review before GKE transition
 
@@ -425,15 +425,17 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 
 ---
 
-## Task 13 — 🤖 AGENT: Write Playbook 07
+## Task 13 — 🤖 AGENT: Write Playbook 07 (GKE)
 
-**Description:** Author `playbooks/07-kustomize-gke.md`. Covers Kustomize motivation, base/overlay structure, GKE Autopilot cluster creation via `gcloud`, Artifact Registry image push, and deployment.
+**Description:** Author `playbooks/07-kustomize-gke.md`. Covers: why Kustomize (single base, environment-specific overlays), full GCP project bootstrap from scratch, GKE Autopilot cluster provisioning, Artifact Registry setup, image push, overlay deployment, and a mandatory cleanup section.
 
 **Acceptance criteria:**
-- [ ] `playbooks/07-kustomize-gke.md` follows established format
-- [ ] Covers why Kustomize, base vs. overlays, GKE cluster creation, registry push, deployment, and verification
-- [ ] Includes full `gcloud` commands for project setup, cluster creation, and Artifact Registry
-- [ ] Includes a diagram showing the kind vs. GKE overlay diff (deferred from diagram plan)
+- [x] `playbooks/07-kustomize-gke.md` follows established format
+- [x] Covers why Kustomize, base vs. overlays, and the learning payoff (only 2 manifest lines differ between clouds)
+- [x] Includes full `gcloud` bootstrap sequence: `gcloud projects create` → billing link → API enablement → Artifact Registry → GKE Autopilot cluster
+- [x] Includes `$5/month` GCP budget alert setup instructions (Billing → Budgets)
+- [x] Includes a diagram showing the kind vs. GKE overlay diff (what changed: image path + StorageClass)
+- [x] Includes mandatory **Cleanup** section: `gcloud projects delete <project-id>` with explanation of 30-day grace period
 
 **Dependencies:** Task 12
 
@@ -467,47 +469,57 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 
 ---
 
-## Task 15 — 🤖 AGENT: Create kind and GKE overlays
+## Task 15 — 🔀 SPLIT: Create kind, GKE, and EKS overlays
 
-**Description:** Agent creates environment-specific overlays that patch the base for each target environment.
+**Description:** Agent creates environment-specific overlays that patch the base for each target environment. Three overlays are created: `kind/` (local), `gke/` (GKE Autopilot), and `eks/` (Amazon EKS stub — fully wired in Task 18 with real ECR values).
 
 **Acceptance criteria:**
 - [ ] `k8s/overlays/kind/kustomization.yaml` references `../../base`; patches: `imagePullPolicy: Never`, local image names, `standard` StorageClass
 - [ ] `k8s/overlays/gke/kustomization.yaml` references `../../base`; patches: Artifact Registry image path, `standard-rwo` StorageClass, higher resource limits
+- [ ] `k8s/overlays/eks/kustomization.yaml` references `../../base`; stub patches: placeholder ECR image path (`<account>.dkr.ecr.<region>.amazonaws.com/shop/<app>:dev`), `gp3` StorageClass
 - [ ] 🤚 `kubectl kustomize k8s/overlays/kind/` renders valid YAML
 - [ ] 🤚 `kubectl kustomize k8s/overlays/gke/` renders valid YAML
-- [ ] 🤚 Diff the two outputs to see exactly what changes between environments
+- [ ] 🤚 `kubectl kustomize k8s/overlays/eks/` renders valid YAML (stub placeholder values are fine at this stage)
+- [ ] 🤚 Diff the kind vs. GKE outputs — only image path + StorageClass lines should differ
+- [ ] 🤚 Diff the GKE vs. EKS outputs — only image registry URL + StorageClass name should differ (same pattern, different values)
 
 **🤚 What to Observe:**
-The diff between the two overlay outputs is the complete, explicit list of what differs between your local and cloud environments. Everything else is identical because it comes from the shared base. This is the core value proposition of Kustomize: one source of truth, clearly named exceptions.
+Run: `diff <(kubectl kustomize k8s/overlays/gke/) <(kubectl kustomize k8s/overlays/eks/)`. The diff will show exactly two types of changes: image registry URLs and StorageClass names. Everything else — Deployments, Services, ConfigMaps, Secrets, probes, the seed Job — is byte-for-byte identical. This is the core value of Kustomize: one source of truth, clearly named exceptions.
 
 **Dependencies:** Task 14
 
 **Files likely touched:**
 - `k8s/overlays/kind/kustomization.yaml` and patches
 - `k8s/overlays/gke/kustomization.yaml` and patches
+- `k8s/overlays/eks/kustomization.yaml` and stub patches
 
 **Estimated scope:** Small
 
 ---
 
-## Task 16 — 🤚 MANUAL: Execute Playbook 07 — push to Artifact Registry, deploy to GKE Autopilot
+## Task 16 — 🤚 MANUAL: Execute Playbook 07 — create GCP project, push to Artifact Registry, deploy to GKE Autopilot
 
-**Description:** Follow `playbooks/07-kustomize-gke.md` to authenticate with GCP, push images to Artifact Registry, provision a GKE Autopilot cluster, and deploy using the GKE overlay.
+**Description:** Follow `playbooks/07-kustomize-gke.md` to create a dedicated GCP project from scratch, authenticate, push images to Artifact Registry, provision a GKE Autopilot cluster, and deploy using the GKE overlay. Run the cleanup at the end.
 
 **Acceptance criteria:**
-- [ ] 🤚 `gcloud auth login` and project configured
-- [ ] 🤚 Images pushed to Artifact Registry: `docker push <region>-docker.pkg.dev/<project>/shop/catalog:dev`
+- [ ] 🤚 New GCP project created: `gcloud projects create k8s-learn-<yourname>`
+- [ ] 🤚 Billing account linked and required APIs enabled
+- [ ] 🤚 $5/month budget alert configured in GCP Billing console
+- [ ] 🤚 Artifact Registry repository created and `docker` configured to push to it
+- [ ] 🤚 Images pushed: `docker push <region>-docker.pkg.dev/<project>/shop/catalog:dev` and `orders:dev`
 - [ ] 🤚 GKE Autopilot cluster created and `kubectl` context switched
 - [ ] 🤚 `kubectl apply -k k8s/overlays/gke/` deploys all resources to GKE
-- [ ] 🤚 `kubectl get pods` on GKE context shows all pods Running
-- [ ] 🤚 `orders` → `catalog` → `postgres` data flow verified end-to-end on GKE
-- [ ] 🤚 Fill in Kustomize and capstone Deployment vs. StatefulSet sections in `docs/CONCEPTS.md`
+- [ ] 🤚 `kubectl get pods -n shop` on GKE context shows all pods Running
+- [ ] 🤚 `orders → catalog → postgres` data flow verified end-to-end on GKE
+- [ ] 🤚 Fill in Kustomize section in `docs/CONCEPTS.md`
+- [ ] 🤚 **Cleanup:** `gcloud projects delete <project-id>` run and confirmed
 
 **🤚 What to Observe:**
-`kubectl apply -k k8s/overlays/gke/` works identically to the kind cluster — the same command, the same manifests, a completely different infrastructure. GKE Autopilot provisions nodes automatically based on your Pod resource requests (you never specified a node count). Run `kubectl get nodes` — you will see nodes that appeared automatically. The Kubernetes abstraction held across environments: that is the payoff of this entire journey.
+`kubectl apply -k k8s/overlays/gke/` works identically to the kind cluster — the same command, the same manifests, a completely different infrastructure. GKE Autopilot provisions nodes automatically based on your Pod resource requests (you never specified a node count). Run `kubectl get nodes` — you will see nodes that appeared automatically. The Kubernetes abstraction held across environments.
 
-**Dependencies:** Task 13, Task 15, GCP project access
+After cleanup: `gcloud projects delete` enters a 30-day pending deletion window. Billing stops immediately. You can run `gcloud projects list` to confirm the project status is `DELETE_REQUESTED`.
+
+**Dependencies:** Task 13, Task 15, GCP account access
 
 **Files likely touched:**
 - `docs/CONCEPTS.md`
@@ -516,11 +528,104 @@ The diff between the two overlay outputs is the complete, explicit list of what 
 
 ---
 
+## Checkpoint: GKE Complete
+
+- [ ] 🤚 Full system running on GKE Autopilot via `k8s/overlays/gke/`
+- [ ] 🤚 `orders → catalog → postgres` end-to-end verified on GKE
+- [ ] `docs/CONCEPTS.md` Kustomize section filled
+- [ ] 🤚 GCP project deleted (`gcloud projects delete` confirmed, status `DELETE_REQUESTED`)
+- [ ] Human review before EKS phase
+
+---
+
+## Phase 5: Cloud Transition — Amazon EKS (Playbook 08)
+
+---
+
+## Task 17 — 🤖 AGENT: Write Playbook 08 (EKS)
+
+**Description:** Author `playbooks/08-kustomize-eks.md`. Covers AWS CLI setup, ECR repository creation, EKS cluster provisioning via `eksctl`, EBS CSI add-on enablement (required for `gp3` StorageClass), image push, overlay deployment, and a mandatory cleanup section.
+
+**Acceptance criteria:**
+- [ ] `playbooks/08-kustomize-eks.md` follows established format
+- [ ] Covers AWS CLI + `eksctl` installation and authentication (`aws configure`)
+- [ ] Includes ECR repository creation commands for `catalog` and `orders`
+- [ ] Includes `eksctl create cluster` command with EBS CSI add-on flag
+- [ ] Explains why EBS CSI add-on is needed for `gp3` PVCs (without it, PVCs stay `Pending`)
+- [ ] Includes `$10/month` AWS Budget alert setup instructions
+- [ ] Includes side-by-side comparison: what changed from GKE overlay to EKS overlay (image URL + StorageClass only)
+- [ ] Includes mandatory **Cleanup** section: `eksctl delete cluster`, `aws ecr delete-repository` for each repo, `aws ec2 describe-volumes` orphan EBS volume check
+
+**Dependencies:** Task 16 (GKE complete)
+
+**Files likely touched:**
+- `playbooks/08-kustomize-eks.md`
+
+**Estimated scope:** Small
+
+---
+
+## Task 18 — 🔀 SPLIT: Finalize `k8s/overlays/eks/`
+
+**Description:** Agent updates the EKS overlay stub (created in Task 15) with real ECR image path format and confirmed `gp3` StorageClass. You verify the rendered output is valid and diff it against the GKE overlay.
+
+**Acceptance criteria:**
+- [ ] `k8s/overlays/eks/kustomization.yaml` uses `gp3` StorageClass patch
+- [ ] `k8s/overlays/eks/` image patches reference real ECR URL format: `<account>.dkr.ecr.<region>.amazonaws.com/shop/<app>:dev`
+- [ ] 🤚 `kubectl kustomize k8s/overlays/eks/` renders valid YAML
+- [ ] 🤚 `diff <(kubectl kustomize k8s/overlays/gke/) <(kubectl kustomize k8s/overlays/eks/)` shows only image URL + StorageClass name differences
+
+**🤚 What to Observe:**
+The diff between GKE and EKS overlays is the entire list of cloud-specific differences for this application. Two lines differ. Everything else — the application logic, health probes, service definitions, the seed job, replica counts — is identical. The Kubernetes portability promise is demonstrated concretely.
+
+**Dependencies:** Task 17
+
+**Files likely touched:**
+- `k8s/overlays/eks/kustomization.yaml` and patches
+
+**Estimated scope:** XS
+
+---
+
+## Task 19 — 🤚 MANUAL: Execute Playbook 08 — push to ECR, provision EKS cluster, deploy, cleanup
+
+**Description:** Follow `playbooks/08-kustomize-eks.md` to configure AWS credentials, create ECR repositories, push images, provision an EKS cluster with `eksctl`, deploy using the EKS overlay, verify end-to-end, and run mandatory cleanup.
+
+**Acceptance criteria:**
+- [ ] 🤚 $10/month AWS Budget alert configured before starting
+- [ ] 🤚 AWS CLI configured (`aws configure`) and `eksctl` installed
+- [ ] 🤚 ECR repositories created for `catalog` and `orders`
+- [ ] 🤚 Images pushed: `docker push <account>.dkr.ecr.<region>.amazonaws.com/shop/catalog:dev` and `orders:dev`
+- [ ] 🤚 EKS cluster provisioned: `eksctl create cluster --name k8s-learn --region <region>`
+- [ ] 🤚 EBS CSI add-on enabled (required for `gp3` PVC provisioning)
+- [ ] 🤚 `kubectl apply -k k8s/overlays/eks/` deploys all resources to EKS
+- [ ] 🤚 `kubectl get pods -n shop` on EKS context shows all pods Running
+- [ ] 🤚 `orders → catalog → postgres` data flow verified end-to-end on EKS
+- [ ] 🤚 Fill in capstone comparison in `docs/CONCEPTS.md`: kind vs. GKE vs. EKS — what differed, what was identical
+- [ ] 🤚 **Cleanup:** `eksctl delete cluster --name k8s-learn`, `aws ecr delete-repository` for both repos, verify no orphaned EBS volumes with `aws ec2 describe-volumes --filters Name=status,Values=available`
+
+**🤚 What to Observe:**
+`kubectl apply -k k8s/overlays/eks/` is the same command as on kind and GKE. The application has no idea it changed clouds. Run `kubectl get nodes` — you will see EC2 instances (unlike GKE Autopilot's virtual nodes). This is the difference between serverless Kubernetes (Autopilot) and managed node groups (EKS): same API, different infrastructure model underneath.
+
+During cleanup, always run the `aws ec2 describe-volumes` check for stranded EBS volumes. PVCs that are deleted before the cluster shuts down can leave orphaned EBS volumes that continue incurring storage charges.
+
+**Dependencies:** Task 17, Task 18, AWS account access
+
+**Files likely touched:**
+- `docs/CONCEPTS.md`
+- `README.md`
+
+**Estimated scope:** XS (concepts fill-in; rest is command execution)
+
+---
+
 ## Checkpoint: Complete
 
-- [ ] All spec success criteria met (see `docs/SPEC-kubernetes-learning.md` Success Criteria)
-- [ ] `k8s/raw/` intact alongside `k8s/base/` and `k8s/overlays/`
-- [ ] Full system running on GKE Autopilot via Kustomize overlays
-- [ ] `docs/CONCEPTS.md` fully populated across all playbooks, including the capstone comparison
-- [ ] `README.md` reflects the final project state
+- [ ] `k8s/raw/` intact alongside `k8s/base/` and `k8s/overlays/` (kind, gke, eks)
+- [ ] Full system verified on kind, GKE Autopilot, and Amazon EKS
+- [ ] `docs/CONCEPTS.md` fully populated: all playbooks + capstone kind vs. GKE vs. EKS comparison
+- [ ] 🤚 GCP project deleted (charges stopped, status `DELETE_REQUESTED`)
+- [ ] 🤚 EKS cluster deleted, ECR repos deleted, no orphaned EBS volumes
+- [ ] `README.md` reflects multi-cloud support
 - [ ] Human review
+
