@@ -89,19 +89,19 @@ Index only. Full acceptance criteria, verification, dependencies, and files are 
 ### Phase 3: Local Cluster — State, Config, Communication, Operations (Playbooks 03-06)
 
 - [x] Task 9: Write and execute Playbook 03 — postgres StatefulSet, PV/PVC
-- [ ] Task 10: Write and execute Playbook 04 — ConfigMaps, Secrets, wire catalog → postgres
-- [ ] Task 11: Write and execute Playbook 05 — deploy orders, internal DNS communication
-- [ ] Task 12: Write and execute Playbook 06 — Probes, Jobs, Rolling Updates
+- [x] Task 10: Write and execute Playbook 04 — ConfigMaps, Secrets, wire catalog → postgres
+- [x] Task 11: Write and execute Playbook 05 — deploy orders, internal DNS communication
+- [x] Task 12: Write and execute Playbook 06 — Probes, Jobs, Rolling Updates
 
 ### Checkpoint: After Tasks 9-12
 
-- [ ] Postgres data survives pod deletion
-- [ ] Config and secrets are injected, not baked into images
-- [ ] `orders` queries `catalog` via `http://catalog:8080`
-- [ ] Zero-downtime rolling update performed and verified
-- [ ] Probes configured; readiness failure forced and observed
-- [ ] Job successfully seeded the database
-- [ ] `docs/CONCEPTS.md` Playbooks 03–06 sections filled
+- [x] Postgres data survives pod deletion
+- [x] Config and secrets are injected, not baked into images
+- [x] `orders` queries `catalog` via `http://catalog:8080`
+- [x] Zero-downtime rolling update performed and verified
+- [x] Probes configured; readiness failure forced and observed
+- [x] Job successfully seeded the database
+- [x] `docs/CONCEPTS.md` Playbooks 03–06 sections filled
 - [ ] Review with human before GKE transition
 
 ### Phase 4: Cloud Transition — Kustomize & GKE Autopilot (Playbook 07)

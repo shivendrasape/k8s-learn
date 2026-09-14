@@ -203,7 +203,19 @@
 - Why would you make a readiness probe stricter than a liveness probe?
 - What did you observe in `kubectl get pods` when you forced the readiness failure?
 
-<!-- Your notes go here -->
+#### Reference: Kubernetes Probe Lifecycle & Spring Boot Actuator
+
+| Probe Type | Operational Question | Target State | Failure Action | Spring Boot Path |
+|---|---|---|---|---|
+| **`startupProbe`** | *"Has slow initialization completed?"* | App booting up | Inhibits liveness/readiness; restarts pod if grace period expires | `/actuator/health/liveness` |
+| **`livenessProbe`** | *"Is the process deadlocked or corrupted?"* | Steady-state vitality | Kubelet terminates and restarts the container (`restarts++`) | `/actuator/health/liveness` |
+| **`readinessProbe`** | *"Can the pod accept customer traffic right now?"* | In-flight capacity | Removes Pod IP from Service `EndpointSlice`; **no restart** | `/actuator/health/readiness` |
+
+**Key Takeaways & Answers:**
+- **Liveness vs. Readiness:** Liveness gates container *vitality* (restarting broken or deadlocked processes). Readiness gates network *traffic admission* (routing requests only to containers capable of fulfilling them).
+- **Failure Consequences:** When a readiness probe fails, the pod transitions to `0/1 Ready` (`Running` status) and is removed from the Service endpoints, stopping customer requests from hitting it. When a liveness probe fails, kubelet issues a `SIGTERM`/`SIGKILL` to restart the container.
+- **Why Readiness is Stricter:** Readiness should verify dependencies (e.g. database connectivity, cache warming, queue saturation). If external database hiccups caused liveness to fail, all application replicas would reboot simultaneously in a catastrophic cascading failure. Keeping dependency health in readiness isolates traffic while preserving running JVMs.
+- **Forced Failure Observation:** In `kubectl get pods -n shop`, the targeted pod transitioned to `0/1 Ready`, but remained in `Running` status with `RESTARTS: 0`. Checking `kubectl get endpoints catalog -n shop` confirmed that its IP was immediately purged from active routing, while the second healthy pod continued serving traffic without a single dropped packet.
 
 ---
 
@@ -217,7 +229,19 @@
 - What happened to the Job pod after it completed successfully?
 - What is a CronJob and when would you use one?
 
-<!-- Your notes go here -->
+#### Reference: Batch Workload Semantics
+
+| Workload Controller | Lifecycle Model | Termination Expectation | Failure Handling |
+|---|---|---|---|
+| **Deployment** | Continuous Daemon | Never terminates; non-zero or zero exit code triggers restart | Replaces dead pods to maintain desired replica count |
+| **Job** | Run-to-Completion Batch | Must exit with code `0` (`Completed`) | Retries up to `backoffLimit` before marking Job `Failed` |
+| **CronJob** | Scheduled Recurring Job | Creates temporary Jobs on a cron schedule (`*/15 * * * *`) | Spawns discrete Jobs per schedule trigger |
+
+**Key Takeaways & Answers:**
+- **Job vs. Deployment:** Use a Job for finite tasks (schema migrations, initial data seeding, batch report generation, one-off backups). Using a Deployment for migrations leads to race conditions when multiple pods execute DDL simultaneously or infinite restart loops when the container exits.
+- **`restartPolicy: OnFailure` vs. `Never`:** `OnFailure` restarts the container within the *same* Pod instance upon exit code $\neq 0$ (preserving local pod identity and volume state). `Never` terminates the failed Pod and instructs the Job controller to schedule a *new* Pod.
+- **Post-Completion Pod Retention:** After the Job succeeded, the pod transitioned to `Completed` (`0/1 Ready`). Kubernetes intentionally does not delete completed Job pods, allowing operators to run `kubectl logs` for auditing.
+- **CronJob:** A CronJob is a higher-level controller that creates Jobs based on a crontab schedule (e.g., `0 2 * * *` for 2 AM daily). Ideal for periodic backups, nightly syncs, and maintenance tasks.
 
 ---
 
@@ -231,7 +255,20 @@
 - How did `kubectl rollout undo` work? What did it actually change under the hood?
 - At what point during a rolling update is traffic still being served from the old pods?
 
-<!-- Your notes go here -->
+#### Reference: Deployment Rolling Strategy & Rollback Architecture
+
+| Parameter | Default | Production Value for Zero Downtime | Architectural Impact |
+|---|---|---|---|
+| **`maxSurge`** | `25%` | `1` (or `25%`) | Maximum number of extra Pods scheduled above desired count during rollout. |
+| **`maxUnavailable`** | `25%` | `0` | Guarantees that the number of available pods never drops below the desired replica count. |
+| **`revisionHistoryLimit`** | `10` | `10` | Number of old ReplicaSets retained in etcd for instant rollback capability. |
+
+**Key Takeaways & Answers:**
+- **Zero-Downtime Guarantee:** Kubernetes orchestrates dual ReplicaSets. A new `v2` pod is created alongside `v1` pods. The `v1` pod is only decommissioned *after* the `v2` pod passes its `readinessProbe` and is admitted into the Service `EndpointSlice`.
+- **`maxSurge` vs. `maxUnavailable`:** `maxSurge` controls how many additional pods can run during rollout (requires spare cluster capacity). `maxUnavailable` controls how many pods can be offline. Setting `maxUnavailable: 0` ensures zero drop in capacity at the expense of rollout speed.
+- **`kubectl rollout undo` Mechanics:** `rollout undo` does not build artifacts or alter files; it updates the Deployment's `spec.template` to match the exact Pod template from a previous ReplicaSet revision (tracked via annotations).
+- **Traffic Handover Point:** Old pods continue serving live traffic throughout the update. As new pods become `Ready`, traffic is balanced across both versions until old pods are systematically drained, sent `SIGTERM`, and terminated.
+
 
 ---
 

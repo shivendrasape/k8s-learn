@@ -378,17 +378,17 @@ When orders calls `http://catalog:8080`, it is using the *Service name* as a DNS
 **Description:** Agent authors `playbooks/06-operations.md`, probe configuration, and the seed Job. You force a readiness failure, run the Job, and perform a rolling update with rollback.
 
 **Acceptance criteria:**
-- [ ] `playbooks/06-operations.md` follows established format
-- [ ] Catalog Deployment updated with `livenessProbe` and `readinessProbe` (HTTP GET `/actuator/health`)
-- [ ] `catalog` app updated: `spring-boot-starter-actuator` added to `pom.xml`
-- [ ] `k8s/raw/06-seed-job.yaml` — Job running `psql` to insert seed product data
-- [ ] 🤚 `kubectl apply -f` updated Deployment and Job
-- [ ] 🤚 Force readiness failure → `kubectl get pods -n shop` shows `0/1 Ready` for catalog
-- [ ] 🤚 `kubectl rollout status deployment/catalog -n shop` — verify clean state
-- [ ] 🤚 Update image tag → `kubectl set image deployment/catalog catalog=shop/catalog:v2 -n shop`
-- [ ] 🤚 Watch rolling update: `kubectl rollout status -w deployment/catalog -n shop`
-- [ ] 🤚 `kubectl rollout undo deployment/catalog -n shop` — rollback and verify
-- [ ] 🤚 Fill in Probes, Jobs, and Rolling Updates sections in `docs/CONCEPTS.md`
+- [x] `playbooks/06-operations.md` follows established format
+- [x] Catalog Deployment updated with `livenessProbe` and `readinessProbe` (HTTP GET `/actuator/health`)
+- [x] `catalog` app updated: `spring-boot-starter-actuator` added to `pom.xml`
+- [x] `k8s/raw/06-seed-job.yaml` — Job running `psql` to insert seed product data
+- [x] 🤚 `kubectl apply -f` updated Deployment and Job
+- [x] 🤚 Force readiness failure → `kubectl get pods -n shop` shows `0/1 Ready` for catalog
+- [x] 🤚 `kubectl rollout status deployment/catalog -n shop` — verify clean state
+- [x] 🤚 Update image tag → `kubectl set image deployment/catalog catalog=shop/catalog:v2 -n shop`
+- [x] 🤚 Watch rolling update: `kubectl rollout status -w deployment/catalog -n shop`
+- [x] 🤚 `kubectl rollout undo deployment/catalog -n shop` — rollback and verify
+- [x] 🤚 Fill in Probes, Jobs, and Rolling Updates sections in `docs/CONCEPTS.md`
 
 **🤚 What to Observe:**
 When you force the readiness failure, the pod stays in `Running` state (liveness is OK) but transitions to `0/1 Ready`. Kubernetes removes it from the Service's endpoint list — traffic stops reaching it, but the pod is not killed. This is the readiness/liveness distinction: readiness gates traffic, liveness gates pod restarts.
@@ -410,13 +410,13 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 
 ## Checkpoint: After Tasks 9-12
 
-- [ ] 🤚 Postgres data survives pod deletion
-- [ ] 🤚 Config and secrets are injected, not baked into images
-- [ ] 🤚 `orders` queries `catalog` via `http://catalog:8080`
-- [ ] 🤚 Zero-downtime rolling update performed and verified
-- [ ] 🤚 Probes configured; readiness failure forced and observed
-- [ ] 🤚 Job successfully seeded the database
-- [ ] `docs/CONCEPTS.md` Playbooks 03–06 sections filled
+- [x] 🤚 Postgres data survives pod deletion
+- [x] 🤚 Config and secrets are injected, not baked into images
+- [x] 🤚 `orders` queries `catalog` via `http://catalog:8080`
+- [x] 🤚 Zero-downtime rolling update performed and verified
+- [x] 🤚 Probes configured; readiness failure forced and observed
+- [x] 🤚 Job successfully seeded the database
+- [x] `docs/CONCEPTS.md` Playbooks 03–06 sections filled
 - [ ] Human review before GKE transition
 
 ---

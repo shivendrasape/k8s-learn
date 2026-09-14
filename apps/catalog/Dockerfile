@@ -15,6 +15,9 @@ RUN ./mvnw clean package -DskipTests -B
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
+# Install curl for in-cluster network debugging and verification
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Copy the built fat JAR from the builder stage
 COPY --from=builder /workspace/target/*.jar app.jar
 

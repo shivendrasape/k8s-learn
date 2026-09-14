@@ -12,3 +12,15 @@ spring:
       ddl-auto: update
     open-in-view: false
     show-sql: false
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
