@@ -167,6 +167,28 @@
 - If the catalog pod restarts and gets a new IP, why does `http://catalog:8080` still work?
 - What would you need to change if you moved `catalog` to a different namespace?
 
+#### Reference: Service Discovery & CoreDNS Mechanics
+
+| Component | Role | Mechanism |
+|---|---|---|
+| **CoreDNS** | In-cluster DNS server | Resolves service hostnames to stable virtual `ClusterIP` addresses using Kubernetes API watcher. |
+| **`/etc/resolv.conf`** | Container DNS resolver config | Injected into every pod with search domains: `<ns>.svc.cluster.local`, `svc.cluster.local`, `cluster.local`. |
+| **ClusterIP** | Virtual stable IP | A durable VIP allocated from the service CIDR block that never changes for the lifetime of the Service. |
+| **EndpointSlice / iptables** | Data-plane load balancer | Translates the ClusterIP VIP to actual healthy Pod IPs via Linux kernel DNAT rules. |
+
+> **DNS Resolution Walkthrough:**
+> 1. `orders` executes HTTP GET to `http://catalog:8080/products`.
+> 2. The Linux resolver reads `/etc/resolv.conf` and appends the first search domain: `catalog` &rarr; `catalog.shop.svc.cluster.local`.
+> 3. CoreDNS answers with the ClusterIP (e.g., `10.96.164.136`).
+> 4. The Linux network stack transmits TCP packets to `10.96.164.136:8080`.
+> 5. `kube-proxy` (via iptables/IPVS) intercepts the packets and load balances them across ready catalog Pod endpoints (`10.244.0.x`).
+
+**Key Takeaways & Answers:**
+- **Runtime Location:** `orders` resolves `catalog` by relying on Kubernetes CoreDNS and the pod's search domain list. It doesn't need to know individual pod IPs or manage service registries (like Eureka or Consul).
+- **Full Qualified Domain Name (FQDN):** `catalog.shop.svc.cluster.local` (Syntax: `<service-name>.<namespace>.svc.<cluster-domain>`).
+- **Pod IP Churn Immunity:** The Service's `ClusterIP` and DNS record are permanent. When pods die and restart with new IPs, Kubernetes updates the `EndpointSlice` backing the service. The client continues sending traffic to the exact same ClusterIP.
+- **Cross-Namespace Calls:** If `catalog` moved to an `inventory` namespace, the short name `catalog` would resolve to `catalog.shop...` and fail (NXDOMAIN). The URL would have to be updated to `http://catalog.inventory:8080` or `http://catalog.inventory.svc.cluster.local:8080`.
+
 <!-- Your notes go here -->
 
 ---

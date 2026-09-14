@@ -4,3 +4,6 @@ server:
 spring:
   application:
     name: orders
+
+catalog:
+  url: ${CATALOG_URL:http://localhost:8080}

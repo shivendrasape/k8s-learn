@@ -347,10 +347,10 @@ In `kubectl describe pod`, look at the Environment section. You will see entries
 **Description:** Agent authors `playbooks/05-communication.md` and orders manifests. You deploy orders and prove the inter-service call works via Kubernetes DNS.
 
 **Acceptance criteria:**
-- [ ] `playbooks/05-communication.md` follows established format
-- [ ] `k8s/raw/05-orders-deployment.yaml` — orders Deployment with `CATALOG_URL=http://catalog:8080`
-- [ ] `k8s/raw/05-orders-service.yaml` — ClusterIP Service for orders
-- [ ] `orders` app updated: `GET /orders` endpoint that HTTP-GETs catalog's `/products` and combines the response
+- [x] `playbooks/05-communication.md` follows established format
+- [x] `k8s/raw/05-orders-deployment.yaml` — orders Deployment with `CATALOG_URL=http://catalog:8080`
+- [x] `k8s/raw/05-orders-service.yaml` — ClusterIP Service for orders
+- [x] `orders` app updated: `GET /orders` endpoint that HTTP-GETs catalog's `/products` and combines the response
 - [ ] 🤚 `kubectl apply -f` orders Deployment and Service
 - [ ] 🤚 `kubectl exec -it <orders-pod> -n shop -- curl http://catalog:8080/products` — succeeds
 - [ ] 🤚 `curl http://orders:8083/orders` (from inside cluster) — returns combined data
