@@ -1,6 +1,14 @@
 server:
   port: 8080
 
+catalog:
+  welcome-message: ${CATALOG_WELCOME_MESSAGE:Default Welcome from Catalog}
+
 spring:
   application:
     name: catalog
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false

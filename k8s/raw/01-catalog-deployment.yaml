@@ -22,6 +22,14 @@ spec:
         ports:
         - containerPort: 8080
           name: http
+        envFrom:
+        - configMapRef:
+            name: catalog-config
+        - secretRef:
+            name: catalog-secret
+        # Demonstration: Spring Boot property hierarchy.
+        # Container args in K8s override both environment variables and application.yml!
+        # args: ["--catalog.welcome-message=Overridden via K8s Pod Container Args!"]
         resources:
           requests:
             memory: "128Mi"

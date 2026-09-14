@@ -311,11 +311,11 @@ After deletion, the new pod comes back as `postgres-0` — not a random name. Th
 **Description:** Agent authors `playbooks/04-configuration.md`, ConfigMap/Secret manifests, and updates the catalog app to connect to postgres. You apply and verify the database connection.
 
 **Acceptance criteria:**
-- [ ] `playbooks/04-configuration.md` follows established format
-- [ ] `k8s/raw/04-catalog-configmap.yaml` contains `SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/catalog`
-- [ ] `k8s/raw/04-catalog-secret.yaml` contains base64-encoded DB username and password
-- [ ] `k8s/raw/01-catalog-deployment.yaml` updated with `envFrom` referencing ConfigMap and Secret
-- [ ] `catalog` app updated: `spring-boot-starter-data-jpa` + `postgresql` driver in `pom.xml`; `Product` entity; `GET /products` endpoint
+- [x] `playbooks/04-configuration.md` follows established format
+- [x] `k8s/raw/04-catalog-configmap.yaml` contains `SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/catalog`
+- [x] `k8s/raw/04-catalog-secret.yaml` contains base64-encoded DB username and password
+- [x] `k8s/raw/01-catalog-deployment.yaml` updated with `envFrom` referencing ConfigMap and Secret
+- [x] `catalog` app updated: `spring-boot-starter-data-jpa` + `postgresql` driver in `pom.xml`; `Product` entity; `GET /products` endpoint
 - [ ] 🤚 `kubectl apply -f` ConfigMap, Secret, and updated Deployment
 - [ ] 🤚 `kubectl describe pod <catalog-pod> -n shop` — inspect the Environment section
 - [ ] 🤚 `kubectl logs <catalog-pod> -n shop` — verify successful postgres connection

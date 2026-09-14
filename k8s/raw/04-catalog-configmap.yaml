@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-config
+  namespace: shop
+  labels:
+    app: catalog
+data:
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catalog
+  CATALOG_WELCOME_MESSAGE: "ConfigMap: Cloud Native Catalog Active"

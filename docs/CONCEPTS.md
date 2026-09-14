@@ -137,6 +137,22 @@
 - Kubernetes Secrets are base64-encoded, not encrypted. What does that mean for your security posture?
 - How would you update a ConfigMap value without rebuilding the image?
 
+#### Reference: Externalized Configuration in Kubernetes
+
+| Primitive | Classification | Storage Form | Injection Methods | Update Behavior |
+|---|---|---|---|---|
+| **ConfigMap** | Non-sensitive app config (URLs, ports, profiles, flags) | Plain text in etcd | `envFrom`, `valueFrom`, Volume Mount (`/etc/config`) | Env vars require rollout restart; Volume mounts auto-update |
+| **Secret** | Sensitive credentials (passwords, tokens, TLS keys) | Base64 encoded in etcd | `envFrom`, `secretKeyRef`, Volume Mount (`/etc/secrets`) | Masked in `describe pod`; requires etcd KMS encryption for true security at rest |
+
+> **12-Factor Principle (Factor III):** Configuration must be strictly decoupled from the code. The container image remains immutable across all environments (dev, test, prod); only the ConfigMap and Secret definitions change per deployment target.
+>
+> **Spring Boot Precedence Hierarchy:**
+> 1. `Container CLI Args` (`args: ["--prop=val"]`) — *Highest precedence*
+> 2. `OS Environment Variables` (`envFrom` / `env` via ConfigMaps & Secrets)
+> 3. `Application Properties` (`application.yml` via `${VAR:default}` placeholders) — *Lowest precedence*
+>
+> **Canonical Relaxed Binding:** Canonical environment variables like `SPRING_DATASOURCE_URL` bind directly to `spring.datasource.url` without requiring explicit `${...}` placeholders in `application.yml`. Custom properties can use `${VAR:default}` syntax for fallbacks.
+
 <!-- Your notes go here -->
 
 ---
