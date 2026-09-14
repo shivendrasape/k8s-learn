@@ -316,11 +316,11 @@ After deletion, the new pod comes back as `postgres-0` — not a random name. Th
 - [x] `k8s/raw/04-catalog-secret.yaml` contains base64-encoded DB username and password
 - [x] `k8s/raw/01-catalog-deployment.yaml` updated with `envFrom` referencing ConfigMap and Secret
 - [x] `catalog` app updated: `spring-boot-starter-data-jpa` + `postgresql` driver in `pom.xml`; `Product` entity; `GET /products` endpoint
-- [ ] 🤚 `kubectl apply -f` ConfigMap, Secret, and updated Deployment
-- [ ] 🤚 `kubectl describe pod <catalog-pod> -n shop` — inspect the Environment section
-- [ ] 🤚 `kubectl logs <catalog-pod> -n shop` — verify successful postgres connection
-- [ ] 🤚 `curl http://catalog:8080/products` (from inside cluster) returns data or empty list
-- [ ] 🤚 Fill in ConfigMaps & Secrets section in `docs/CONCEPTS.md`
+- [x] 🤚 `kubectl apply -f` ConfigMap, Secret, and updated Deployment
+- [x] 🤚 `kubectl describe pod <catalog-pod> -n shop` — inspect the Environment section
+- [x] 🤚 `kubectl logs <catalog-pod> -n shop` — verify successful postgres connection
+- [x] 🤚 `curl http://catalog:8080/products` (from inside cluster) returns data or empty list
+- [x] 🤚 Fill in ConfigMaps & Secrets section in `docs/CONCEPTS.md`
 
 **🤚 What to Observe:**
 In `kubectl describe pod`, look at the Environment section. You will see entries like `SPRING_DATASOURCE_URL: <set to the key ... from ConfigMap>` and `SPRING_DATASOURCE_PASSWORD: <set to the key ... from Secret>`. Kubernetes does not expose Secret values in plain text in pod descriptions. The application code did not change to accommodate this — only the K8s config did. This is 12-Factor App config in action.
@@ -351,10 +351,10 @@ In `kubectl describe pod`, look at the Environment section. You will see entries
 - [x] `k8s/raw/05-orders-deployment.yaml` — orders Deployment with `CATALOG_URL=http://catalog:8080`
 - [x] `k8s/raw/05-orders-service.yaml` — ClusterIP Service for orders
 - [x] `orders` app updated: `GET /orders` endpoint that HTTP-GETs catalog's `/products` and combines the response
-- [ ] 🤚 `kubectl apply -f` orders Deployment and Service
-- [ ] 🤚 `kubectl exec -it <orders-pod> -n shop -- curl http://catalog:8080/products` — succeeds
-- [ ] 🤚 `curl http://orders:8083/orders` (from inside cluster) — returns combined data
-- [ ] 🤚 Fill in Internal DNS & Cross-Service Communication section in `docs/CONCEPTS.md`
+- [x] 🤚 `kubectl apply -f` orders Deployment and Service
+- [x] 🤚 `kubectl exec -it <orders-pod> -n shop -- curl http://catalog:8080/products` — succeeds
+- [x] 🤚 `curl http://orders:8083/orders` (from inside cluster) — returns combined data
+- [x] 🤚 Fill in Internal DNS & Cross-Service Communication section in `docs/CONCEPTS.md`
 
 **🤚 What to Observe:**
 When orders calls `http://catalog:8080`, it is using the *Service name* as a DNS hostname. Kubernetes DNS resolves `catalog` → ClusterIP → one of the catalog pods. If catalog pods are rescheduled and get new IPs, the DNS entry and ClusterIP stay stable — orders never needs to know. This is how microservices achieve location transparency in Kubernetes.
