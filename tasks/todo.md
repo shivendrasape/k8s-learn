@@ -451,9 +451,9 @@ During the rolling update, watch `kubectl get pods -w`. Old pods scale down one 
 **Description:** Agent creates the Kustomize base by copying finalized raw manifests and adding `kustomization.yaml`. `k8s/raw/` remains untouched. You validate the Kustomize output matches the raw originals.
 
 **Acceptance criteria:**
-- [ ] `k8s/base/` contains copies of all deployment, service, statefulset, configmap, and secret manifests
-- [ ] `k8s/base/kustomization.yaml` lists all resources
-- [ ] `k8s/raw/` is unchanged
+- [x] `k8s/base/` contains copies of all deployment, service, statefulset, configmap, and secret manifests
+- [x] `k8s/base/kustomization.yaml` lists all resources
+- [x] `k8s/raw/` is unchanged
 - [ ] 🤚 `kubectl kustomize k8s/base/` renders valid YAML
 - [ ] 🤚 Diff: output matches raw originals (ordering may differ, content should not)
 

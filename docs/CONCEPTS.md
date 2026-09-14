@@ -276,11 +276,21 @@
 
 > 🤚 Fill this in after **Playbook 07** → [07-kustomize-gke.md](../playbooks/07-kustomize-gke.md)
 
-**Think through:**
-- What problem does Kustomize solve compared to maintaining two separate copies of YAML?
-- What is the relationship between `k8s/base/` and `k8s/overlays/`?
-- Looking at the diff between the kind overlay output and the GKE overlay output — what changed?
-- When would you choose Kustomize over Helm?
+#### Reference: Kustomize Architecture & Multi-Cloud Portability
+
+| Dimension | Raw YAML Duplication | Helm | Kustomize |
+|---|---|---|---|
+| **Mechanism** | Copy/paste directory per env | Go text templating (`{{ .Values... }}`) | Base + targeted overlay patches |
+| **Tooling** | None | Requires separate `helm` CLI | Built directly into `kubectl` (`-k`) |
+| **Drift Risk** | High (copies get out of sync) | Low | Low (single source of truth in `base/`) |
+| **Readability** | High per file | Lower (YAML is broken by template directives) | High (pure, valid YAML at all layers) |
+| **Best For** | One-off prototypes | Third-party charts, public packages | In-house microservices across dev/cloud envs |
+
+**Key Takeaways & Answers:**
+- **Problem Solved:** Prevents configuration drift by keeping 95%+ of your Kubernetes YAML in a single, reusable `base/`. Environment differences (image paths, storage classes, replica counts) live only as surgical diffs in `overlays/`.
+- **Base vs. Overlay:** `base/` holds complete, valid, environment-agnostic YAML. `overlays/<target>/` imports the base and declares only what is different using transformers (like `images:`) or patches.
+- **The Diff Payoff:** `diff <(kubectl kustomize overlays/kind/) <(kubectl kustomize overlays/gke/)` reveals the exact differences between local and cloud: only the image registry URL and the StorageClass name (`standard` vs `standard-rwo`).
+- **Kustomize vs. Helm:** Choose Kustomize for first-party microservices where you want native `kubectl` integration without the complexity of template languages. Choose Helm when packaging reusable software for distribution to external consumers or installing third-party vendor applications.
 
 <!-- Your notes go here -->
 
@@ -293,13 +303,14 @@
 Complete the table from memory before checking your notes:
 
 | Dimension | Deployment | StatefulSet |
-|-----------|-----------|-------------|
-| Pod naming | | |
-| Pod identity across restarts | | |
-| Storage | | |
-| Startup / shutdown ordering | | |
-| Primary use case | | |
+|---|---|---|
+| **Pod naming** | Random hash suffix (`catalog-7bf89...`) | Deterministic ordinal index (`postgres-0`, `postgres-1`) |
+| **Pod identity across restarts** | Ephemeral; replacement gets a completely new name & IP | Stable; replacement receives the exact same ordinal and identity |
+| **Storage** | Shared volume (`EmptyDir`, PVC shared across replicas) | Dedicated per-pod storage via `volumeClaimTemplates` (`postgres-data-postgres-0`) |
+| **Startup / shutdown ordering** | Parallel, nondeterministic | Strictly ordered (`0` before `1` on start; reverse on shutdown) |
+| **Primary use case** | Stateless apps (REST APIs, workers, web servers) | Stateful workloads (Databases, Kafka, Redis, Zookeeper) |
 
 **In one paragraph:** Why does running a database as a Deployment instead of a StatefulSet lead to data loss?
+Deployments treat Pods as fungible, disposable cattle. If a database Deployment scales or restarts, multiple pods may attach concurrently to the same storage without lock coordination, causing filesystem corruption. Furthermore, when a pod in a Deployment dies, its replacement does not inherit the previous pod's unique identity or volume binding. StatefulSets guarantee stable network identities and dedicate isolated, durable `PersistentVolumeClaims` to each specific ordinal instance (`postgres-0`), ensuring data persists safely across pod rescheduling and restarts.
 
 <!-- Your notes go here -->

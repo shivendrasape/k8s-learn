@@ -2,9 +2,9 @@
 
 ## Objective
 
-Build practical, architectural competence in Kubernetes by designing, deploying, and operating a minimal set of interconnected microservices (a catalog API, an orders API, and a database) on a local `kind` cluster, before replicating it on GKE Autopilot.
+Build practical, architectural competence in Kubernetes by designing, deploying, and operating a minimal set of interconnected microservices (a catalog API, an orders API, and a database) on a local `kind` cluster, before replicating it on GKE Autopilot and Amazon EKS.
 
-The core lesson is understanding the **platform**: decoupled compute (Deployments), routing (Services), and state (StatefulSets). We will learn *when* to use each abstraction and what its boundaries are.
+The core lesson is understanding the **platform**: decoupled compute (Deployments), routing (Services), and state (StatefulSets). We will learn *when* to use each abstraction and what its boundaries are across local and cloud environments.
 
 **System Architecture (Target Workloads):** 
 - `catalog` (Spring Boot API)
@@ -12,7 +12,7 @@ The core lesson is understanding the **platform**: decoupled compute (Deployment
 - `orders` (Spring Boot API)
 - **Data Flow:** `orders` HTTP-GETs `catalog` → `catalog` queries `postgres`.
 
-**Success:** You can deploy, configure, health-check, roll out, and rollback this system on `kind` and GKE Autopilot, and you can explain the architectural boundaries of each component.
+**Success:** You can deploy, configure, health-check, roll out, and rollback this system on `kind`, GKE Autopilot, and Amazon EKS, and you can explain the architectural boundaries of each component.
 
 ---
 
@@ -30,7 +30,7 @@ This repository is heavily optimized for **learning core K8s objects**. If takin
 *   **GitOps / CI/CD:** We use manual `kubectl apply`. Prod requires ArgoCD or Flux.
 *   **Templating:** We use raw YAML and Kustomize. Prod often requires Helm.
 *   **Security & RBAC:** We omit NetworkPolicies and granular RBAC.
-*   **Managed Services:** We run Postgres in-cluster for learning state. Prod should use a managed DB (e.g., Cloud SQL).
+*   **Managed Services:** We run Postgres in-cluster for learning state. Prod should use a managed DB (e.g., Cloud SQL or RDS).
 *   **DNS & TLS:** We omit ExternalDNS and cert-manager.
 *   **Observability:** We rely on `kubectl logs`. Prod requires Prometheus/Grafana and centralized logging.
 
@@ -45,7 +45,8 @@ This repository is heavily optimized for **learning core K8s objects**. If takin
 | Workload Apps | Java 25, Spring Boot 4 | Kept minimal (lightweight REST payloads) to focus strictly on K8s. |
 | Database | Official `postgres` | Focus on K8s StatefulSets, not DB configuration. |
 | Manifests | Raw YAML → Kustomize | Exposes the raw objects before introducing configuration management. |
-| Cloud | GKE Autopilot | Managed Kubernetes without node-pool management overhead. |
+| Cloud (GCP) | GKE Autopilot | Managed Kubernetes without node-pool management overhead. |
+| Cloud (AWS) | Amazon EKS | Industry standard AWS managed Kubernetes with `eksctl`. |
 
 ### Prerequisites
 

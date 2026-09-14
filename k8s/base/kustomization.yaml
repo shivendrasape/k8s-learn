@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: shop
+
+resources:
+  - 01-catalog-deployment.yaml
+  - 02-catalog-service.yaml
+  - 02-catalog-nodeport.yaml
+  - 03-postgres-statefulset.yaml
+  - 03-postgres-service.yaml
+  - 04-catalog-configmap.yaml
+  - 04-catalog-secret.yaml
+  - 05-orders-deployment.yaml
+  - 05-orders-service.yaml
+  - 06-seed-job.yaml
