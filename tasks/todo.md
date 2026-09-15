@@ -626,6 +626,6 @@ During cleanup, always run the `aws ec2 describe-volumes` check for stranded EBS
 - [ ] `docs/CONCEPTS.md` fully populated: all playbooks + capstone kind vs. GKE vs. EKS comparison
 - [ ] 🤚 GCP project deleted (charges stopped, status `DELETE_REQUESTED`)
 - [ ] 🤚 EKS cluster deleted, ECR repos deleted, no orphaned EBS volumes
-- [ ] `README.md` reflects multi-cloud support
+- [x] `README.md` reflects multi-cloud support
 - [ ] Human review
 
